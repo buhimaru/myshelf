@@ -1,10 +1,12 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AddWorkForm } from "@/components/AddWorkForm";
 import { EditWorkDialog } from "@/components/edit-work-dialog";
+import { LoginRequired } from "@/components/login-required";
+import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { WorkCard } from "@/components/work-card";
 import { createClient } from "@/lib/supabase/client";
+import { selectOwnWorks, filterOwnWorks } from "@/lib/own-works";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_FILTERS,
@@ -26,16 +29,9 @@ type WorksHomeProps = {
   initialError: string | null;
 };
 
-async function fetchWorks() {
-  const supabase = createClient();
-  return supabase
-    .from("works")
-    .select("id, title, category, image_url, description, created_at, user_id")
-    .order("created_at", { ascending: false });
-}
-
 export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
-  const [works, setWorks] = useState(initialWorks);
+  const { user, isLoading } = useAuth();
+  const [works, setWorks] = useState<Work[]>([]);
   const [error, setError] = useState(initialError);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,10 +39,24 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
     useState<FilterCategory>("all");
   const [editingWork, setEditingWork] = useState<Work | null>(null);
 
-  const filteredWorks = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
+  useEffect(() => {
+    if (!user?.id) {
+      setWorks([]);
+      return;
+    }
 
-    return works.filter((work) => {
+    setWorks(filterOwnWorks(initialWorks, user.id));
+  }, [user?.id, initialWorks]);
+
+  const filteredWorks = useMemo(() => {
+    if (!user?.id) {
+      return [];
+    }
+
+    const keyword = searchQuery.trim().toLowerCase();
+    const ownWorks = filterOwnWorks(works, user.id);
+
+    return ownWorks.filter((work) => {
       const matchesCategory =
         selectedCategory === "all" || work.category === selectedCategory;
 
@@ -62,7 +72,7 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
       const description = (work.description ?? "").toLowerCase();
       return title.includes(keyword) || description.includes(keyword);
     });
-  }, [works, searchQuery, selectedCategory]);
+  }, [works, searchQuery, selectedCategory, user?.id]);
 
   const hasActiveFilter =
     selectedCategory !== "all" || searchQuery.trim().length > 0;
@@ -75,8 +85,15 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
 
   async function refreshWorks() {
     setIsRefreshing(true);
-    const { data, error: fetchError } = await fetchWorks();
+    const supabase = createClient();
+    const { user: currentUser, data, error: fetchError } =
+      await selectOwnWorks(supabase);
     setIsRefreshing(false);
+
+    if (!currentUser?.id) {
+      setWorks([]);
+      return;
+    }
 
     if (fetchError) {
       setError(fetchError.message);
@@ -84,7 +101,7 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
     }
 
     setError(null);
-    setWorks((data as Work[] | null) ?? []);
+    setWorks(filterOwnWorks(data, currentUser.id));
   }
 
   let worksContent = null;
@@ -141,6 +158,11 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
         </p>
       </section>
 
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">ログイン状態を確認しています...</p>
+      ) : !user ? (
+        <LoginRequired />
+      ) : (
       <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
         <AddWorkForm onAdded={refreshWorks} />
 
@@ -204,6 +226,7 @@ export function WorksHome({ initialWorks, initialError }: WorksHomeProps) {
           {worksContent}
         </section>
       </div>
+      )}
 
       <EditWorkDialog
         work={editingWork}

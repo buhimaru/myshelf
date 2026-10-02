@@ -18,11 +18,12 @@ alter table public.works
 alter table public.works enable row level security;
 
 drop policy if exists "works_select_public" on public.works;
-create policy "works_select_public"
+drop policy if exists "works_select_own" on public.works;
+create policy "works_select_own"
   on public.works
   for select
-  to anon, authenticated
-  using (true);
+  to authenticated
+  using (auth.uid() = user_id);
 
 drop policy if exists "works_insert_public" on public.works;
 drop policy if exists "works_insert_own" on public.works;

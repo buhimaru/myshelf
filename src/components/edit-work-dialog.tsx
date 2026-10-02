@@ -5,7 +5,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { CoverUploadField } from "@/components/cover-upload-field";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { getCurrentUser } from "@/lib/supabase/session";
 import {
   CATEGORY_LABELS,
   WORK_CATEGORIES,
@@ -68,9 +67,11 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
     }
 
     const supabase = createClient();
-    const user = await getCurrentUser(supabase);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.id) {
       setMessage("編集するにはログインしてください。");
       return;
     }
@@ -90,7 +91,8 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
       const { error } = await supabase
         .from("works")
         .update(payload)
-        .eq("id", workId);
+        .eq("id", workId)
+        .eq("user_id", user.id);
 
       if (error) {
         logSupabaseError("works.update", { id: workId, ...payload }, {

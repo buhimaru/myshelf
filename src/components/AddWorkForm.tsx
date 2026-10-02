@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { useAuth } from "@/components/auth-provider";
 import { CoverUploadField } from "@/components/cover-upload-field";
-import { LoginPrompt } from "@/components/login-prompt";
+import { LoginRequired } from "@/components/login-required";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -205,8 +205,10 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!isLoading && !user ? (
-          <LoginPrompt message="登録するにはログインが必要です。" />
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">ログイン状態を確認しています...</p>
+        ) : !user ? (
+          <LoginRequired />
         ) : (
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-1.5">

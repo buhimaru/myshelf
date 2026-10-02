@@ -65,7 +65,11 @@ export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
     const supabase = createClient();
 
     try {
-      const { error } = await supabase.from("works").delete().eq("id", work.id);
+      const { error } = await supabase
+        .from("works")
+        .delete()
+        .eq("id", work.id)
+        .eq("user_id", user.id);
 
       if (error) {
         logSupabaseError("works.delete", { id: work.id }, {

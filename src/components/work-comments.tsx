@@ -40,6 +40,27 @@ export function WorkComments({ workId }: WorkCommentsProps) {
   const [isError, setIsError] = useState(false);
 
   async function loadComments() {
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+
+    if (!currentUser?.id) {
+      setComments([]);
+      return;
+    }
+
+    const { data: work, error: workError } = await supabase
+      .from("works")
+      .select("id")
+      .eq("id", workId)
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (workError || !work) {
+      setComments([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("comments")
       .select("id, work_id, author_name, body, created_at, user_id")
@@ -80,7 +101,7 @@ export function WorkComments({ workId }: WorkCommentsProps) {
     return () => {
       cancelled = true;
     };
-  }, [workId]);
+  }, [workId, user?.id]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,8 +156,17 @@ export function WorkComments({ workId }: WorkCommentsProps) {
       return;
     }
 
+    if (!user?.id) {
+      setMessage("削除するにはログインしてください。");
+      return;
+    }
+
     setDeletingId(comment.id);
-    const { error } = await supabase.from("comments").delete().eq("id", comment.id);
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", comment.id)
+      .eq("user_id", user.id);
     setDeletingId(null);
 
     if (error) {
