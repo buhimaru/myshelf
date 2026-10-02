@@ -4,6 +4,7 @@ export type Profile = {
   id: string;
   username?: string | null;
   display_name?: string | null;
+  is_public?: boolean | null;
   created_at?: string;
 };
 
@@ -33,7 +34,15 @@ export async function ensureMyProfile() {
     { onConflict: "id" },
   );
 
-  if (error && !error.message?.toLowerCase().includes("duplicate")) {
-    console.error("[MyShelf] profile insert failed", error);
+  if (error) {
+    let detail = error.message;
+    if (!detail) {
+      try {
+        detail = JSON.stringify(error);
+      } catch {
+        detail = String(error);
+      }
+    }
+    console.error("[MyShelf] profile upsert failed", detail, error);
   }
 }

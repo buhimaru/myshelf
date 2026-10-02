@@ -22,7 +22,7 @@ export type Database = {
       profiles: {
         Row: Profile;
         Insert: Profile;
-        Update: Partial<Pick<Profile, "display_name" | "username">>;
+        Update: Partial<Pick<Profile, "display_name" | "username" | "is_public">>;
         Relationships: Relationships;
       };
     };

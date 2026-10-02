@@ -3,6 +3,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/profile";
 import type { Work } from "@/lib/work";
 
+const PUBLIC_WORK_SELECT =
+  "*, profiles!inner(is_public, username, display_name)";
+
+export function isPublishedPublicWork(work: Work) {
+  if (!work.user_id) {
+    return false;
+  }
+
+  const profile = Array.isArray(work.profiles)
+    ? work.profiles[0]
+    : work.profiles;
+  return profile?.is_public === true;
+}
+
 export type CatalogSearchResult = {
   works: Work[];
   profiles: Profile[];
@@ -23,14 +37,16 @@ export async function searchPublicCatalog(
   const [worksResult, profilesResult] = await Promise.all([
     supabase
       .from("works")
-      .select("*")
-      .eq("is_public", true)
+      .select(PUBLIC_WORK_SELECT)
+      .eq("profiles.is_public", true)
+      .not("user_id", "is", null)
       .ilike("title", like)
       .order("created_at", { ascending: false })
       .limit(40),
     supabase
       .from("profiles")
-      .select("id, username, display_name, created_at")
+      .select("id, username, display_name, is_public, created_at")
+      .eq("is_public", true)
       .or(`username.ilike.${like},display_name.ilike.${like}`)
       .limit(20),
   ]);
@@ -40,9 +56,11 @@ export async function searchPublicCatalog(
 
   return {
     works: ((worksResult.data as Work[] | null) ?? []).filter(
-      (work) => work.is_public !== false,
+      isPublishedPublicWork,
     ),
-    profiles: (profilesResult.data as Profile[] | null) ?? [],
+    profiles: ((profilesResult.data as Profile[] | null) ?? []).filter(
+      (profile) => profile.is_public === true,
+    ),
     error,
   };
 }
@@ -50,13 +68,14 @@ export async function searchPublicCatalog(
 export async function selectPublicWorks(supabase: SupabaseClient, limit = 24) {
   const { data, error } = await supabase
     .from("works")
-    .select("*")
-    .eq("is_public", true)
+    .select(PUBLIC_WORK_SELECT)
+    .eq("profiles.is_public", true)
+    .not("user_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   return {
-    data: ((data as Work[] | null) ?? []).filter((work) => work.is_public !== false),
+    data: ((data as Work[] | null) ?? []).filter(isPublishedPublicWork),
     error,
   };
 }
@@ -67,13 +86,14 @@ export async function selectPublicWorksByUser(
 ) {
   const { data, error } = await supabase
     .from("works")
-    .select("*")
+    .select(PUBLIC_WORK_SELECT)
     .eq("user_id", userId)
-    .eq("is_public", true)
+    .eq("profiles.is_public", true)
+    .not("user_id", "is", null)
     .order("created_at", { ascending: false });
 
   return {
-    data: ((data as Work[] | null) ?? []).filter((work) => work.is_public !== false),
+    data: ((data as Work[] | null) ?? []).filter(isPublishedPublicWork),
     error,
   };
 }

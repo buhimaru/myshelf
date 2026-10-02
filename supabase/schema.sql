@@ -12,8 +12,6 @@ alter table public.works add column if not exists user_id uuid references auth.u
 alter table public.works add column if not exists is_public boolean not null default true;
 
 alter table public.works drop constraint if exists works_category_check;
-
-alter table public.works drop constraint if exists works_category_check;
 alter table public.works
   add constraint works_category_check
   check (category in ('book', 'movie', 'anime', 'music'));
@@ -27,7 +25,18 @@ create policy "works_select_visible"
   on public.works
   for select
   to anon, authenticated
-  using (is_public = true or auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or (
+      user_id is not null
+      and exists (
+        select 1
+        from public.profiles as profiles
+        where profiles.id = works.user_id
+          and profiles.is_public = true
+      )
+    )
+  );
 
 drop policy if exists "works_insert_public" on public.works;
 drop policy if exists "works_insert_own" on public.works;
@@ -124,6 +133,7 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles add column if not exists username text;
+alter table public.profiles add column if not exists is_public boolean not null default true;
 
 update public.profiles
 set username = coalesce(nullif(username, ''), display_name, 'ユーザー')
@@ -183,3 +193,8 @@ select
   coalesce(nullif(split_part(users.email, '@', 1), ''), 'ユーザー')
 from auth.users as users
 on conflict (id) do nothing;
+
+alter table public.works drop constraint if exists works_user_id_profiles_fkey;
+alter table public.works
+  add constraint works_user_id_profiles_fkey
+  foreign key (user_id) references public.profiles (id) on delete set null;

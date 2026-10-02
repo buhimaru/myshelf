@@ -44,16 +44,25 @@ export function WorkComments({ workId }: WorkCommentsProps) {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
 
-    const { data: work, error: workError } = await supabase
+    const { data: workData, error: workError } = await supabase
       .from("works")
-      .select("id, user_id, is_public")
+      .select("id, user_id, profiles(is_public)")
       .eq("id", workId)
       .maybeSingle();
 
-    const isOwner = Boolean(currentUser?.id && work?.user_id === currentUser.id);
-    const isPublic = work?.is_public !== false;
+    const work = workData as {
+      id: string;
+      user_id: string | null;
+      profiles?: { is_public?: boolean } | { is_public?: boolean }[] | null;
+    } | null;
 
-    if (workError || !work || (!isOwner && !isPublic)) {
+    const isOwner = Boolean(currentUser?.id && work?.user_id === currentUser.id);
+    const profile = Array.isArray(work?.profiles)
+      ? work.profiles[0]
+      : work?.profiles;
+    const isPublicAccount = profile?.is_public === true;
+
+    if (workError || !work || (!isOwner && !isPublicAccount)) {
       setComments([]);
       return;
     }

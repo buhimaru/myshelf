@@ -38,7 +38,6 @@ type WorkCardProps = {
   onDeleted?: () => void | Promise<void>;
   ownerName?: string | null;
   ownerId?: string | null;
-  showVisibility?: boolean;
 };
 
 export function WorkCard({
@@ -47,7 +46,6 @@ export function WorkCard({
   onDeleted,
   ownerName,
   ownerId,
-  showVisibility = false,
 }: WorkCardProps) {
   const { user } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -124,11 +122,6 @@ export function WorkCard({
               <Icon className="size-4" aria-hidden />
             </span>
             <span className="text-xs font-medium">{CATEGORY_LABELS[category]}</span>
-            {showVisibility ? (
-              <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium">
-                {work.is_public === false ? "非公開" : "公開"}
-              </span>
-            ) : null}
           </div>
           <CardTitle className="transition-colors group-hover/card:text-primary">
             {work.title}

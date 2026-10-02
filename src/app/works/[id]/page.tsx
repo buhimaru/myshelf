@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { WorkDetail } from "@/components/work-detail";
+import { isPublishedPublicWork } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
 import type { Work } from "@/lib/work";
 
@@ -20,7 +21,7 @@ async function getVisibleWork(id: string) {
 
   const { data, error } = await supabase
     .from("works")
-    .select("*")
+    .select("*, profiles(is_public, username, display_name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -30,7 +31,7 @@ async function getVisibleWork(id: string) {
 
   const work = data as Work;
   const isOwner = Boolean(user?.id && work.user_id === user.id);
-  if (!isOwner && work.is_public === false) {
+  if (!isOwner && !isPublishedPublicWork(work)) {
     return { user, work: null };
   }
 

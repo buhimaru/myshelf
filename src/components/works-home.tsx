@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AddWorkForm } from "@/components/AddWorkForm";
 import { EditWorkDialog } from "@/components/edit-work-dialog";
 import { LoginPrompt } from "@/components/login-prompt";
+import { AccountPublicToggle } from "@/components/public-toggle";
 import { PublicSearchForm } from "@/components/public-search-form";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
 import { WorkCard } from "@/components/work-card";
 import { createClient } from "@/lib/supabase/client";
 import { selectOwnWorks, filterOwnWorks } from "@/lib/own-works";
+import { isPublishedPublicWork } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_FILTERS,
@@ -28,12 +30,14 @@ import {
 type WorksHomeProps = {
   initialWorks: Work[];
   initialPublicWorks: Work[];
+  initialAccountPublic: boolean;
   initialError: string | null;
 };
 
 export function WorksHome({
   initialWorks,
   initialPublicWorks,
+  initialAccountPublic,
   initialError,
 }: WorksHomeProps) {
   const { user, isLoading } = useAuth();
@@ -81,7 +85,7 @@ export function WorksHome({
   }, [works, searchQuery, selectedCategory, user?.id]);
 
   const publicWorks = useMemo(
-    () => initialPublicWorks.filter((work) => work.is_public !== false),
+    () => initialPublicWorks.filter(isPublishedPublicWork),
     [initialPublicWorks],
   );
 
@@ -148,7 +152,6 @@ export function WorksHome({
               work={work}
               onEdit={setEditingWork}
               onDeleted={refreshWorks}
-              showVisibility
             />
           </li>
         ))}
@@ -171,18 +174,23 @@ export function WorksHome({
         <PublicSearchForm />
       </section>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">ログイン状態を確認しています...</p>
-      ) : user?.id ? (
+      {user?.id ? (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
-          <AddWorkForm onAdded={refreshWorks} />
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">ログイン状態を確認しています...</p>
+          ) : (
+            <AddWorkForm onAdded={refreshWorks} />
+          )}
 
           <section className="space-y-4">
-            <div>
-              <h2 className="font-heading text-xl font-semibold tracking-tight">
-                あなたの本棚
-              </h2>
-              <p className="text-sm text-muted-foreground">{countLabel}</p>
+            <div className="space-y-3">
+              <div>
+                <h2 className="font-heading text-xl font-semibold tracking-tight">
+                  あなたの本棚
+                </h2>
+                <p className="text-sm text-muted-foreground">{countLabel}</p>
+              </div>
+              <AccountPublicToggle initialPublic={initialAccountPublic} />
             </div>
 
             <div className="space-y-3">
@@ -236,31 +244,37 @@ export function WorksHome({
           </section>
         </div>
       ) : (
-        <section className="space-y-4">
-          <LoginPrompt message="作品を登録して本棚を管理するにはログインしてください。" />
-          <div>
-            <h2 className="font-heading text-xl font-semibold tracking-tight">
-              公開されている作品
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              ログインなしで公開作品を閲覧できます。
-            </p>
-          </div>
-          {publicWorks.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              まだ公開作品がありません。
-            </p>
-          ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {publicWorks.map((work) => (
-                <li key={work.id}>
-                  <WorkCard work={work} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <LoginPrompt message="作品を登録して本棚を管理するにはログインしてください。" />
       )}
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-heading text-xl font-semibold tracking-tight">
+            公開されている作品
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            公開アカウントの作品は、ログインなしでも閲覧・検索できます。
+          </p>
+        </div>
+        {error && !user?.id ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            作品一覧の取得に失敗しました: {error}
+          </p>
+        ) : null}
+        {publicWorks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            まだ公開作品がありません。
+          </p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {publicWorks.map((work) => (
+              <li key={work.id}>
+                <WorkCard work={work} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <EditWorkDialog
         work={editingWork}

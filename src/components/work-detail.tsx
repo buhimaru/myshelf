@@ -45,9 +45,6 @@ export function WorkDetail({ work }: WorkDetailProps) {
             <Icon className="size-3.5" aria-hidden />
             {CATEGORY_LABELS[category]}
           </span>
-          <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            {work.is_public === false ? "非公開" : "公開"}
-          </span>
         </p>
         <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           {work.title}

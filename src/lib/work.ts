@@ -10,7 +10,10 @@ export type Work = {
   description: string | null;
   created_at?: string;
   user_id?: string | null;
-  is_public?: boolean;
+  profiles?:
+    | { is_public?: boolean; username?: string | null; display_name?: string | null }
+    | { is_public?: boolean; username?: string | null; display_name?: string | null }[]
+    | null;
 };
 
 export const CATEGORY_LABELS: Record<WorkCategory, string> = {
@@ -40,7 +43,6 @@ export type WorkWritePayload = {
   image_url: string | null;
   description: string | null;
   user_id: string;
-  is_public: boolean;
 };
 
 export function buildWorkWritePayload(input: {
@@ -49,7 +51,6 @@ export function buildWorkWritePayload(input: {
   imageUrl: string;
   description: string;
   userId: string;
-  isPublic?: boolean;
 }): WorkWritePayload {
   if (!isWorkCategory(input.category)) {
     throw new Error(`不正なカテゴリです: ${input.category}`);
@@ -61,7 +62,6 @@ export function buildWorkWritePayload(input: {
     image_url: input.imageUrl.trim() || null,
     description: input.description.trim() || null,
     user_id: input.userId,
-    is_public: input.isPublic ?? true,
   };
 }
 

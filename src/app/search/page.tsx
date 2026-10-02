@@ -48,7 +48,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           公開作品・ユーザーを探す
         </h1>
         <p className="text-muted-foreground">
-          ユーザー名または作品名で検索できます。公開設定の作品だけが表示されます。
+          ユーザー名または作品名で検索できます。公開アカウントの作品だけが表示されます。
         </p>
         <PublicSearchForm initialQuery={query} />
       </section>
