@@ -44,19 +44,16 @@ export function WorkComments({ workId }: WorkCommentsProps) {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
 
-    if (!currentUser?.id) {
-      setComments([]);
-      return;
-    }
-
     const { data: work, error: workError } = await supabase
       .from("works")
-      .select("id")
+      .select("id, user_id, is_public")
       .eq("id", workId)
-      .eq("user_id", currentUser.id)
       .maybeSingle();
 
-    if (workError || !work) {
+    const isOwner = Boolean(currentUser?.id && work?.user_id === currentUser.id);
+    const isPublic = work?.is_public !== false;
+
+    if (workError || !work || (!isOwner && !isPublic)) {
       setComments([]);
       return;
     }

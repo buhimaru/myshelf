@@ -9,6 +9,9 @@ create table if not exists public.works (
 );
 
 alter table public.works add column if not exists user_id uuid references auth.users (id) on delete set null;
+alter table public.works add column if not exists is_public boolean not null default true;
+
+alter table public.works drop constraint if exists works_category_check;
 
 alter table public.works drop constraint if exists works_category_check;
 alter table public.works
@@ -19,11 +22,12 @@ alter table public.works enable row level security;
 
 drop policy if exists "works_select_public" on public.works;
 drop policy if exists "works_select_own" on public.works;
-create policy "works_select_own"
+drop policy if exists "works_select_visible" on public.works;
+create policy "works_select_visible"
   on public.works
   for select
-  to authenticated
-  using (auth.uid() = user_id);
+  to anon, authenticated
+  using (is_public = true or auth.uid() = user_id);
 
 drop policy if exists "works_insert_public" on public.works;
 drop policy if exists "works_insert_own" on public.works;
@@ -111,3 +115,71 @@ create policy "covers_authenticated_update"
   to authenticated
   using (bucket_id = 'covers')
   with check (bucket_id = 'covers');
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  display_name text not null,
+  username text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles add column if not exists username text;
+
+update public.profiles
+set username = coalesce(nullif(username, ''), display_name, 'ユーザー')
+where username is null or username = '';
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "profiles_select_public" on public.profiles;
+create policy "profiles_select_public"
+  on public.profiles
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "profiles_insert_own" on public.profiles;
+create policy "profiles_insert_own"
+  on public.profiles
+  for insert
+  to authenticated
+  with check (auth.uid() = id);
+
+drop policy if exists "profiles_update_own" on public.profiles;
+create policy "profiles_update_own"
+  on public.profiles
+  for update
+  to authenticated
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name, username)
+  values (
+    new.id,
+    coalesce(nullif(split_part(new.email, '@', 1), ''), 'ユーザー'),
+    coalesce(nullif(split_part(new.email, '@', 1), ''), 'ユーザー')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+insert into public.profiles (id, display_name, username)
+select
+  users.id,
+  coalesce(nullif(split_part(users.email, '@', 1), ''), 'ユーザー'),
+  coalesce(nullif(split_part(users.email, '@', 1), ''), 'ユーザー')
+from auth.users as users
+on conflict (id) do nothing;

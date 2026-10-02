@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import { ensureMyProfile } from "@/lib/profile";
 import {
   getCurrentUser,
   isAuthSessionMissingError,
@@ -46,9 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void getCurrentUser(supabase)
-      .then((nextUser) => {
+      .then(async (nextUser) => {
+        const resolved = (nextUser as User | null) ?? null;
+        if (resolved?.id) {
+          await ensureMyProfile();
+        }
         if (!cancelled) {
-          setUser((nextUser as User | null) ?? null);
+          setUser(resolved);
           setIsLoading(false);
         }
       })
@@ -67,8 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) {
         return;
       }
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
       setIsLoading(false);
+      if (nextUser?.id) {
+        void ensureMyProfile();
+      }
     });
 
     return () => {

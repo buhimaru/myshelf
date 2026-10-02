@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "ホーム" },
-  { href: "/works", label: "作品" },
+  { href: "/search", label: "検索" },
   { href: "/shelf", label: "本棚" },
 ] as const;
 
@@ -29,6 +29,13 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const displayName = user?.email ?? "";
+
+  function isNavActive(href: (typeof navItems)[number]["href"]) {
+    if (href === "/") {
+      return pathname === "/";
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -57,7 +64,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="メイン">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isNavActive(item.href);
             return (
               <Link
                 key={item.href}
@@ -119,7 +126,7 @@ export function Header() {
               </SheetHeader>
               <nav className="flex flex-col gap-1 px-4" aria-label="モバイル">
                 {navItems.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = isNavActive(item.href);
                   return (
                     <Link
                       key={item.href}

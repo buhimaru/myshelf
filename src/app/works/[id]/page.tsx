@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { LoginRequired } from "@/components/login-required";
 import { WorkDetail } from "@/components/work-detail";
 import { createClient } from "@/lib/supabase/server";
 import type { Work } from "@/lib/work";
@@ -13,43 +12,36 @@ type WorkPageProps = {
   params: Promise<{ id: string }>;
 };
 
-async function getOwnWork(id: string) {
+async function getVisibleWork(id: string) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.id) {
-    return { user: null, work: null };
-  }
-
   const { data, error } = await supabase
     .from("works")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error) {
+  if (error || !data) {
+    return { user, work: null as Work | null };
+  }
+
+  const work = data as Work;
+  const isOwner = Boolean(user?.id && work.user_id === user.id);
+  if (!isOwner && work.is_public === false) {
     return { user, work: null };
   }
 
-  if (!data || data.user_id !== user.id) {
-    return { user, work: null };
-  }
-
-  return { user, work: data as Work };
+  return { user, work };
 }
 
 export async function generateMetadata({
   params,
 }: WorkPageProps): Promise<Metadata> {
   const { id } = await params;
-  const { user, work } = await getOwnWork(id);
-
-  if (!user) {
-    return { title: "ログインが必要です" };
-  }
+  const { work } = await getVisibleWork(id);
 
   return {
     title: work?.title ?? "作品が見つかりません",
@@ -58,11 +50,7 @@ export async function generateMetadata({
 
 export default async function WorkPage({ params }: WorkPageProps) {
   const { id } = await params;
-  const { user, work } = await getOwnWork(id);
-
-  if (!user) {
-    return <LoginRequired />;
-  }
+  const { work } = await getVisibleWork(id);
 
   if (!work) {
     notFound();

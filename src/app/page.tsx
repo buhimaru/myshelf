@@ -1,6 +1,6 @@
-import { LoginRequired } from "@/components/login-required";
 import { WorksHome } from "@/components/works-home";
 import { filterOwnWorks } from "@/lib/own-works";
+import { selectPublicWorks } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
 import type { Work } from "@/lib/work";
 
@@ -13,20 +13,28 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.id) {
-    return <LoginRequired />;
-  }
+  const { data: publicWorks, error: publicError } =
+    await selectPublicWorks(supabase);
 
-  const { data, error } = await supabase
-    .from("works")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  let ownWorks: Work[] = [];
+  let ownError: string | null = null;
+
+  if (user?.id) {
+    const { data, error } = await supabase
+      .from("works")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    ownWorks = filterOwnWorks((data as Work[] | null) ?? [], user.id);
+    ownError = error?.message ?? null;
+  }
 
   return (
     <WorksHome
-      initialWorks={filterOwnWorks((data as Work[] | null) ?? [], user.id)}
-      initialError={error?.message ?? null}
+      initialWorks={ownWorks}
+      initialPublicWorks={publicWorks}
+      initialError={ownError ?? publicError?.message ?? null}
     />
   );
 }

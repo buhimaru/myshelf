@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { CoverUploadField } from "@/components/cover-upload-field";
 import { LoginRequired } from "@/components/login-required";
+import { PublicToggle } from "@/components/public-toggle";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +43,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
   const [isError, setIsError] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [bookCandidates, setBookCandidates] = useState<BookLookupResult[]>([]);
 
   function applyBookLookup(book: BookLookupResult) {
@@ -153,6 +155,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
         imageUrl,
         description,
         userId,
+        isPublic,
       });
 
       const { data, error } = await supabase
@@ -179,6 +182,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
       setCategory("book");
       setImageUrl("");
       setDescription("");
+      setIsPublic(true);
       setBookCandidates([]);
       setIsError(false);
       setMessage("作品を登録しました。");
@@ -300,6 +304,12 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
                 className="min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </label>
+
+            <PublicToggle
+              checked={isPublic}
+              onChange={setIsPublic}
+              disabled={isSubmitting}
+            />
 
             {message ? (
               <p

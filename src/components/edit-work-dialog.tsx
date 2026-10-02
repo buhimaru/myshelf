@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { CoverUploadField } from "@/components/cover-upload-field";
+import { PublicToggle } from "@/components/public-toggle";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -29,6 +30,7 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
   const [category, setCategory] = useState<WorkCategory>("book");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
     setCategory(isWorkCategory(work.category) ? work.category : "book");
     setImageUrl(work.image_url ?? "");
     setDescription(work.description ?? "");
+    setIsPublic(work.is_public !== false);
     setMessage(null);
     setIsSaving(false);
   }, [work]);
@@ -84,6 +87,7 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
         category,
         image_url: imageUrl.trim() || null,
         description: description.trim() || null,
+        is_public: isPublic,
       };
 
       console.info("[MyShelf] works.update payload", { id: workId, ...payload });
@@ -189,6 +193,12 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
               className="min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
           </label>
+
+          <PublicToggle
+            checked={isPublic}
+            onChange={setIsPublic}
+            disabled={isSaving}
+          />
 
           {message ? (
             <p className="text-sm text-destructive" role="alert">

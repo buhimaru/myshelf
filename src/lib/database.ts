@@ -1,4 +1,5 @@
 import type { WorkComment, WorkCommentInsert } from "@/lib/comment";
+import type { Profile } from "@/lib/profile";
 import type { Work, WorkWritePayload } from "@/lib/work";
 
 type Relationships = [];
@@ -16,6 +17,12 @@ export type Database = {
         Row: WorkComment;
         Insert: WorkCommentInsert;
         Update: Partial<WorkCommentInsert>;
+        Relationships: Relationships;
+      };
+      profiles: {
+        Row: Profile;
+        Insert: Profile;
+        Update: Partial<Pick<Profile, "display_name" | "username">>;
         Relationships: Relationships;
       };
     };

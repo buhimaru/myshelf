@@ -34,11 +34,21 @@ const categoryIcons: Record<WorkCategory, typeof Library> = {
 
 type WorkCardProps = {
   work: Work;
-  onEdit: (work: Work) => void;
-  onDeleted: () => void | Promise<void>;
+  onEdit?: (work: Work) => void;
+  onDeleted?: () => void | Promise<void>;
+  ownerName?: string | null;
+  ownerId?: string | null;
+  showVisibility?: boolean;
 };
 
-export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
+export function WorkCard({
+  work,
+  onEdit,
+  onDeleted,
+  ownerName,
+  ownerId,
+  showVisibility = false,
+}: WorkCardProps) {
   const { user } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -82,7 +92,7 @@ export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
         return;
       }
 
-      await onDeleted();
+      await onDeleted?.();
     } catch (error) {
       logSupabaseError("works.delete", { id: work.id }, error);
       setMessage(
@@ -114,10 +124,20 @@ export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
               <Icon className="size-4" aria-hidden />
             </span>
             <span className="text-xs font-medium">{CATEGORY_LABELS[category]}</span>
+            {showVisibility ? (
+              <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium">
+                {work.is_public === false ? "非公開" : "公開"}
+              </span>
+            ) : null}
           </div>
           <CardTitle className="transition-colors group-hover/card:text-primary">
             {work.title}
           </CardTitle>
+          {ownerName && ownerId ? (
+            <p className="text-xs text-muted-foreground">
+              {ownerName}
+            </p>
+          ) : null}
           {work.description ? (
             <CardDescription className="line-clamp-3">
               {work.description}
@@ -138,7 +158,7 @@ export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
             {message}
           </p>
         ) : null}
-        {canManage ? (
+        {canManage && onEdit && onDeleted ? (
           <div className="flex gap-2">
             <Button
               type="button"
@@ -158,14 +178,13 @@ export function WorkCard({ work, onEdit, onDeleted }: WorkCardProps) {
               {isDeleting ? "削除中..." : "削除"}
             </Button>
           </div>
-        ) : !user ? (
-          <p className="text-xs text-muted-foreground">
-            編集・削除には
-            <Link href="/login" className="mx-1 font-medium text-foreground underline-offset-4 hover:underline">
-              ログイン
-            </Link>
-            が必要です。
-          </p>
+        ) : ownerId && ownerName ? (
+          <Link
+            href={`/users/${ownerId}`}
+            className="text-xs font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {ownerName}の本棚を見る
+          </Link>
         ) : null}
       </CardFooter>
     </Card>
