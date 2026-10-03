@@ -14,24 +14,27 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" aria-label="テーマを切り替える">
-        <Sun className="size-4" />
-      </Button>
-    );
-  }
-
-  const isDark = resolvedTheme === "dark";
+  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
-      aria-label={isDark ? "ライトモードに切り替える" : "ダークモードに切り替える"}
+      aria-label={
+        mounted
+          ? isDark
+            ? "ライトモードに切り替える"
+            : "ダークモードに切り替える"
+          : "テーマを切り替える"
+      }
+      disabled={!mounted}
       onClick={() => setTheme(isDark ? "light" : "dark")}
+      suppressHydrationWarning
     >
-      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      <span className="flex size-4 items-center justify-center" suppressHydrationWarning>
+        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </span>
     </Button>
   );
 }

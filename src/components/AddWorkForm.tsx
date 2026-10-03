@@ -5,6 +5,10 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { CoverUploadField } from "@/components/cover-upload-field";
 import { LoginRequired } from "@/components/login-required";
+import {
+  MediaLookupButton,
+  MediaLookupCandidates,
+} from "@/components/media-lookup-controls";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,8 +17,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { BookLookupResult } from "@/lib/google-books";
+import { MEDIA_LOOKUP_NOT_FOUND, type MediaLookupResult } from "@/lib/google-books";
 import { createClient } from "@/lib/supabase/client";
+import { fetchWorkMediaLookup } from "@/lib/work-media-lookup";
 import {
   CATEGORY_LABELS,
   WORK_CATEGORIES,
@@ -42,25 +47,27 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
   const [isError, setIsError] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [bookCandidates, setBookCandidates] = useState<BookLookupResult[]>([]);
+  const [mediaCandidates, setMediaCandidates] = useState<MediaLookupResult[]>(
+    [],
+  );
 
-  function applyBookLookup(book: BookLookupResult) {
-    if (book.description) {
-      setDescription(book.description);
+  function applyMediaLookup(item: MediaLookupResult) {
+    if (item.description) {
+      setDescription(item.description);
     }
-    if (book.imageUrl) {
-      setImageUrl(book.imageUrl);
+    if (item.imageUrl) {
+      setImageUrl(item.imageUrl);
     }
-    setBookCandidates([]);
+    setMediaCandidates([]);
     setIsError(false);
     setMessage(
-      book.description || book.imageUrl
-        ? `「${book.title}」の情報を入力しました。`
-        : `「${book.title}」は見つかりましたが、あらすじと画像がありませんでした。`,
+      item.description || item.imageUrl
+        ? `「${item.title}」の情報を入力しました。`
+        : `「${item.title}」は見つかりましたが、あらすじと画像がありませんでした。`,
     );
   }
 
-  async function handleBookLookup() {
+  async function handleMediaLookup() {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setIsError(true);
@@ -69,52 +76,33 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
     }
 
     setIsLookingUp(true);
-    setBookCandidates([]);
+    setMediaCandidates([]);
     setMessage(null);
     setIsError(false);
 
     try {
-      const response = await fetch(
-        `/api/books/search?title=${encodeURIComponent(trimmedTitle)}`,
+      const { items, error } = await fetchWorkMediaLookup(
+        trimmedTitle,
+        category,
       );
-      const payload = (await response.json()) as {
-        items?: BookLookupResult[];
-        error?: string;
-      };
-      const items = payload.items ?? [];
-      console.log("[MyShelf] book lookup response", {
-        ok: response.ok,
-        status: response.status,
-        count: items.length,
-        error: payload.error,
-      });
-
-      if (!response.ok) {
-        setIsError(true);
-        setMessage(payload.error ?? "書籍情報の取得に失敗しました。");
-        return;
-      }
 
       if (items.length === 0) {
         setIsError(true);
-        setMessage("該当する本が見つかりませんでした");
+        setMessage(error || MEDIA_LOOKUP_NOT_FOUND);
         return;
       }
 
-      if (items.length === 1) {
-        applyBookLookup(items[0]);
-        return;
+      applyMediaLookup(items[0]);
+      if (items.length > 1) {
+        setMediaCandidates(items);
+        setMessage(
+          `先頭の「${items[0].title}」を入力しました。別の候補があれば下から選べます。`,
+        );
       }
-
-      applyBookLookup(items[0]);
-      setBookCandidates(items);
-      setMessage(
-        `先頭の「${items[0].title}」を入力しました。別の候補があれば下から選べます。`,
-      );
     } catch (error) {
-      console.error("[MyShelf] book lookup failed", error);
+      console.error("[MyShelf] media lookup failed", error);
       setIsError(true);
-      setMessage("書籍情報の取得中にエラーが発生しました。");
+      setMessage(MEDIA_LOOKUP_NOT_FOUND);
     } finally {
       setIsLookingUp(false);
     }
@@ -179,7 +167,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
       setCategory("book");
       setImageUrl("");
       setDescription("");
-      setBookCandidates([]);
+      setMediaCandidates([]);
       setIsError(false);
       setMessage("作品を登録しました。");
       await onAdded?.();
@@ -211,6 +199,26 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
           <LoginRequired />
         ) : (
           <form className="grid gap-4" onSubmit={handleSubmit}>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-medium">カテゴリ</span>
+              <select
+                required
+                name="category"
+                value={category}
+                onChange={(event) => {
+                  setCategory(event.target.value as WorkCategory);
+                  setMediaCandidates([]);
+                }}
+                className={fieldClassName}
+              >
+                {WORK_CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {CATEGORY_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <div className="grid gap-1.5">
               <span className="text-sm font-medium">タイトル</span>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -222,60 +230,17 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
                   placeholder="作品名"
                   className={fieldClassName}
                 />
-                {category === "book" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isLookingUp}
-                    className="shrink-0"
-                    onClick={() => void handleBookLookup()}
-                  >
-                    {isLookingUp ? "検索中..." : "あらすじ・画像を取得"}
-                  </Button>
-                ) : null}
+                <MediaLookupButton
+                  isLookingUp={isLookingUp}
+                  onLookup={() => void handleMediaLookup()}
+                />
               </div>
             </div>
 
-            {category === "book" && bookCandidates.length > 1 ? (
-              <ul className="grid gap-2 rounded-xl border border-border bg-muted/30 p-3">
-                {bookCandidates.map((book) => (
-                  <li key={book.id}>
-                    <button
-                      type="button"
-                      className="w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-background"
-                      onClick={() => applyBookLookup(book)}
-                    >
-                      <span className="font-medium">{book.title}</span>
-                      {book.authors ? (
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {book.authors}
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <label className="grid gap-1.5">
-              <span className="text-sm font-medium">カテゴリ</span>
-              <select
-                required
-                name="category"
-                value={category}
-                onChange={(event) => {
-                  setCategory(event.target.value as WorkCategory);
-                  setBookCandidates([]);
-                }}
-                className={fieldClassName}
-              >
-                {WORK_CATEGORIES.map((value) => (
-                  <option key={value} value={value}>
-                    {CATEGORY_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <MediaLookupCandidates
+              items={mediaCandidates}
+              onSelect={applyMediaLookup}
+            />
 
             <CoverUploadField
               imageUrl={imageUrl}

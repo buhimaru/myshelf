@@ -3,8 +3,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { CoverUploadField } from "@/components/cover-upload-field";
+import {
+  MediaLookupButton,
+  MediaLookupCandidates,
+} from "@/components/media-lookup-controls";
 import { Button } from "@/components/ui/button";
+import { MEDIA_LOOKUP_NOT_FOUND, type MediaLookupResult } from "@/lib/google-books";
 import { createClient } from "@/lib/supabase/client";
+import { fetchWorkMediaLookup } from "@/lib/work-media-lookup";
 import {
   CATEGORY_LABELS,
   WORK_CATEGORIES,
@@ -31,7 +37,12 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [isLookupError, setIsLookupError] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [mediaCandidates, setMediaCandidates] = useState<MediaLookupResult[]>(
+    [],
+  );
 
   useEffect(() => {
     if (!work) {
@@ -43,7 +54,9 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
     setImageUrl(work.image_url ?? "");
     setDescription(work.description ?? "");
     setMessage(null);
+    setIsLookupError(false);
     setIsSaving(false);
+    setMediaCandidates([]);
   }, [work]);
 
   if (!work) {
@@ -52,9 +65,67 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
 
   const workId = work.id;
 
+  function applyMediaLookup(item: MediaLookupResult) {
+    if (item.description) {
+      setDescription(item.description);
+    }
+    if (item.imageUrl) {
+      setImageUrl(item.imageUrl);
+    }
+    setMediaCandidates([]);
+    setIsLookupError(false);
+    setMessage(
+      item.description || item.imageUrl
+        ? `「${item.title}」の情報を入力しました。`
+        : `「${item.title}」は見つかりましたが、あらすじと画像がありませんでした。`,
+    );
+  }
+
+  async function handleMediaLookup() {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setIsLookupError(true);
+      setMessage("タイトルを入力してから検索してください。");
+      return;
+    }
+
+    setIsLookingUp(true);
+    setMediaCandidates([]);
+    setMessage(null);
+    setIsLookupError(false);
+
+    try {
+      const { items, error } = await fetchWorkMediaLookup(
+        trimmedTitle,
+        category,
+      );
+
+      if (items.length === 0) {
+        setIsLookupError(true);
+        setMessage(error || MEDIA_LOOKUP_NOT_FOUND);
+        return;
+      }
+
+      applyMediaLookup(items[0]);
+      if (items.length > 1) {
+        setMediaCandidates(items);
+        setMessage(
+          `先頭の「${items[0].title}」を入力しました。別の候補があれば下から選べます。`,
+        );
+      }
+    } catch (error) {
+      console.error("[MyShelf] media lookup failed", error);
+      setIsLookupError(true);
+      setMessage(MEDIA_LOOKUP_NOT_FOUND);
+    } finally {
+      setIsLookingUp(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    setIsLookupError(false);
 
     if (isUploadingCover) {
       return;
@@ -143,25 +214,15 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
 
         <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
           <label className="grid gap-1.5">
-            <span className="text-sm font-medium">タイトル</span>
-            <input
-              required
-              name="title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className={fieldClassName}
-            />
-          </label>
-
-          <label className="grid gap-1.5">
             <span className="text-sm font-medium">カテゴリ</span>
             <select
               required
               name="category"
               value={category}
-              onChange={(event) =>
-                setCategory(event.target.value as WorkCategory)
-              }
+              onChange={(event) => {
+                setCategory(event.target.value as WorkCategory);
+                setMediaCandidates([]);
+              }}
               className={fieldClassName}
             >
               {WORK_CATEGORIES.map((value) => (
@@ -171,6 +232,29 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
               ))}
             </select>
           </label>
+
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium">タイトル</span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                required
+                name="title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className={fieldClassName}
+              />
+              <MediaLookupButton
+                isLookingUp={isLookingUp}
+                disabled={isSaving || isUploadingCover}
+                onLookup={() => void handleMediaLookup()}
+              />
+            </div>
+          </div>
+
+          <MediaLookupCandidates
+            items={mediaCandidates}
+            onSelect={applyMediaLookup}
+          />
 
           <CoverUploadField
             imageUrl={imageUrl}
@@ -191,7 +275,14 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
           </label>
 
           {message ? (
-            <p className="text-sm text-destructive" role="alert">
+            <p
+              className={
+                isLookupError
+                  ? "text-sm text-destructive"
+                  : "text-sm text-muted-foreground"
+              }
+              role={isLookupError ? "alert" : "status"}
+            >
               {message}
             </p>
           ) : null}

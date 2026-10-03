@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CatalogSearchSection } from "@/components/catalog-search-section";
 import { PublicSearchForm } from "@/components/public-search-form";
 import { WorkCard } from "@/components/work-card";
 import { profileLabel } from "@/lib/profile";
@@ -52,6 +53,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </p>
         <PublicSearchForm initialQuery={query} />
       </section>
+
+      <CatalogSearchSection />
 
       {error ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

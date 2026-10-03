@@ -3,7 +3,7 @@
 import { BookMarked, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,7 +28,13 @@ export function Header() {
   const { user, isLoading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const displayName = user?.email ?? "";
+  const showAuth = mounted && !isLoading;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function isNavActive(href: (typeof navItems)[number]["href"]) {
     if (href === "/") {
@@ -85,7 +91,9 @@ export function Header() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <div className="hidden items-center gap-2 md:flex">
-            {isLoading ? null : user?.id ? (
+            {!showAuth ? (
+              <span className="inline-block h-8 w-20" aria-hidden />
+            ) : user?.id ? (
               <>
                 <span className="max-w-40 truncate text-sm text-muted-foreground">
                   {displayName}
@@ -143,7 +151,7 @@ export function Header() {
                     </Link>
                   );
                 })}
-                {user?.id ? (
+                {showAuth && user?.id ? (
                   <>
                     <p className="mt-3 truncate px-3 text-sm text-muted-foreground">
                       {displayName}
@@ -158,7 +166,7 @@ export function Header() {
                       {isSigningOut ? "ログアウト中..." : "ログアウト"}
                     </Button>
                   </>
-                ) : (
+                ) : showAuth ? (
                   <Link
                     href="/login"
                     onClick={() => setOpen(false)}
@@ -166,7 +174,7 @@ export function Header() {
                   >
                     ログイン
                   </Link>
-                )}
+                ) : null}
               </nav>
             </SheetContent>
           </Sheet>

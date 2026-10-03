@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AddWorkForm } from "@/components/AddWorkForm";
+import { CatalogSearchSection } from "@/components/catalog-search-section";
 import { EditWorkDialog } from "@/components/edit-work-dialog";
 import { LoginPrompt } from "@/components/login-prompt";
 import { AccountPublicToggle } from "@/components/public-toggle";
@@ -17,6 +18,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WorkCard } from "@/components/work-card";
+import {
+  GUEST_SHELF_EVENT,
+  GUEST_SHELF_STORAGE_KEY,
+  readGuestShelf,
+} from "@/lib/guest-shelf";
 import { createClient } from "@/lib/supabase/client";
 import { selectOwnWorks, filterOwnWorks } from "@/lib/own-works";
 import { isPublishedPublicWork } from "@/lib/search";
@@ -48,6 +54,30 @@ export function WorksHome({
   const [selectedCategory, setSelectedCategory] =
     useState<FilterCategory>("all");
   const [editingWork, setEditingWork] = useState<Work | null>(null);
+  const [guestWorks, setGuestWorks] = useState<Work[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  function reloadGuestShelf() {
+    setGuestWorks(readGuestShelf());
+  }
+
+  useEffect(() => {
+    setMounted(true);
+    reloadGuestShelf();
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === GUEST_SHELF_STORAGE_KEY) {
+        reloadGuestShelf();
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(GUEST_SHELF_EVENT, reloadGuestShelf);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(GUEST_SHELF_EVENT, reloadGuestShelf);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.id) {
@@ -58,15 +88,17 @@ export function WorksHome({
     setWorks(filterOwnWorks(initialWorks, user.id));
   }, [user?.id, initialWorks]);
 
+  const shelfWorks = user?.id ? works : mounted ? guestWorks : [];
+
   const filteredWorks = useMemo(() => {
-    if (!user?.id) {
-      return [];
-    }
-
     const keyword = searchQuery.trim().toLowerCase();
-    const ownWorks = filterOwnWorks(works, user.id);
+    const sourceWorks = user?.id
+      ? filterOwnWorks(works, user.id)
+      : mounted
+        ? guestWorks
+        : [];
 
-    return ownWorks.filter((work) => {
+    return sourceWorks.filter((work) => {
       const matchesCategory =
         selectedCategory === "all" || work.category === selectedCategory;
 
@@ -82,7 +114,7 @@ export function WorksHome({
       const description = (work.description ?? "").toLowerCase();
       return title.includes(keyword) || description.includes(keyword);
     });
-  }, [works, searchQuery, selectedCategory, user?.id]);
+  }, [works, guestWorks, searchQuery, selectedCategory, user?.id, mounted]);
 
   const publicWorks = useMemo(
     () => initialPublicWorks.filter(isPublishedPublicWork),
@@ -95,8 +127,8 @@ export function WorksHome({
   const countLabel = isRefreshing
     ? "最新の一覧を読み込んでいます..."
     : hasActiveFilter
-      ? `${filteredWorks.length}件 / 全${works.length}件`
-      : `${works.length}件`;
+      ? `${filteredWorks.length}件 / 全${shelfWorks.length}件`
+      : `${shelfWorks.length}件`;
 
   async function refreshWorks() {
     setIsRefreshing(true);
@@ -119,20 +151,24 @@ export function WorksHome({
     setWorks(filterOwnWorks(data, currentUser.id));
   }
 
+  const shelfError = user?.id ? error : null;
+
   let worksContent = null;
 
-  if (!error && filteredWorks.length === 0 && works.length === 0 && !hasActiveFilter) {
+  if (!shelfError && filteredWorks.length === 0 && shelfWorks.length === 0 && !hasActiveFilter) {
     worksContent = (
       <Card className="bg-card/80">
         <CardHeader>
           <CardTitle>まだ作品がありません</CardTitle>
           <CardDescription>
-            左のフォームから最初の作品を登録すると、ここに表示されます。
+            {user?.id
+              ? "左のフォームから最初の作品を登録すると、ここに表示されます。"
+              : "上の検索から作品を追加すると、この端末の仮棚に表示されます。"}
           </CardDescription>
         </CardHeader>
       </Card>
     );
-  } else if (!error && filteredWorks.length === 0) {
+  } else if (!shelfError && filteredWorks.length === 0) {
     worksContent = (
       <Card className="bg-card/80">
         <CardHeader>
@@ -143,15 +179,15 @@ export function WorksHome({
         </CardHeader>
       </Card>
     );
-  } else if (!error) {
+  } else if (!shelfError) {
     worksContent = (
       <ul className="grid gap-4 sm:grid-cols-2">
         {filteredWorks.map((work) => (
           <li key={work.id}>
             <WorkCard
               work={work}
-              onEdit={setEditingWork}
-              onDeleted={refreshWorks}
+              onEdit={user?.id ? setEditingWork : undefined}
+              onDeleted={user?.id ? refreshWorks : reloadGuestShelf}
             />
           </li>
         ))}
@@ -173,6 +209,10 @@ export function WorksHome({
         </p>
         <PublicSearchForm />
       </section>
+
+      <CatalogSearchSection
+        onAdded={user?.id ? refreshWorks : reloadGuestShelf}
+      />
 
       {user?.id ? (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
@@ -244,7 +284,18 @@ export function WorksHome({
           </section>
         </div>
       ) : (
-        <LoginPrompt message="作品を登録して本棚を管理するにはログインしてください。" />
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-heading text-xl font-semibold tracking-tight">
+              あなたの本棚
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {countLabel} ・ この端末の仮棚です。ログインするとクラウドに保存できます。
+            </p>
+          </div>
+          <LoginPrompt message="ログインすると、作品をアカウントに保存して公開設定も使えます。" />
+          {worksContent}
+        </section>
       )}
 
       <section className="space-y-4">

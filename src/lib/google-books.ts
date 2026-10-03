@@ -1,10 +1,14 @@
-export type BookLookupResult = {
+export type MediaLookupResult = {
   id: string;
   title: string;
   authors: string;
   description: string;
   imageUrl: string;
 };
+
+export type BookLookupResult = MediaLookupResult;
+
+export const MEDIA_LOOKUP_NOT_FOUND = "情報が見つかりませんでした";
 
 type GoogleBooksVolume = {
   id?: string;

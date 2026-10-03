@@ -1,12 +1,19 @@
 import { NextRequest } from "next/server";
 
-import { lookupExternalMedia, MEDIA_LOOKUP_NOT_FOUND } from "@/lib/external-media";
+import {
+  lookupExternalMedia,
+  MEDIA_LOOKUP_NOT_FOUND,
+  parseLookupCategory,
+} from "@/lib/external-media";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const title = request.nextUrl.searchParams.get("title")?.trim() ?? "";
+  const category = parseLookupCategory(
+    request.nextUrl.searchParams.get("category"),
+  );
 
   if (!title) {
     return Response.json(
@@ -15,8 +22,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (!category) {
+    return Response.json(
+      { error: MEDIA_LOOKUP_NOT_FOUND, items: [] },
+      { status: 400 },
+    );
+  }
+
   try {
-    const result = await lookupExternalMedia(title, "book");
+    const result = await lookupExternalMedia(title, category);
     return Response.json(
       {
         items: result.items,
@@ -25,7 +39,7 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    console.error("[MyShelf] Google Books lookup failed", error);
+    console.error("[MyShelf] /api/works/lookup failed", error);
     return Response.json(
       { error: MEDIA_LOOKUP_NOT_FOUND, items: [] },
       { status: 200, headers: { "Cache-Control": "no-store" } },
