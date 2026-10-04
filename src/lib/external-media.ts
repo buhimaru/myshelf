@@ -1,8 +1,10 @@
 import {
   MEDIA_LOOKUP_NOT_FOUND,
   mapGoogleBooksItems,
+  normalizeLookupImageUrl,
   rankBookLookupResults,
   toHttpsUrl,
+  upgradeItunesArtworkUrl,
   type MediaLookupResult,
 } from "@/lib/google-books";
 import { isWorkCategory, type WorkCategory } from "@/lib/work";
@@ -107,24 +109,30 @@ async function fetchJson(url: URL, headers?: HeadersInit): Promise<JsonFetchResu
   }
 }
 
-function upgradeItunesArtworkUrl(url: string) {
-  if (!url) {
-    return "";
-  }
-  return toHttpsUrl(url).replace(/\d+x\d+bb/gi, "600x600bb");
-}
-
 function pickItunesTitle(item: ItunesResult) {
   return (item.trackName ?? item.collectionName ?? "").trim();
 }
 
+function stripRichText(value: string) {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;|&#xa0;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+\n/g, "\n")
+    .trim();
+}
+
 function pickItunesDescription(item: ItunesResult) {
-  const overview = (
+  const overview = stripRichText(
     item.longDescription ??
-    item.shortDescription ??
-    item.description ??
-    ""
-  ).trim();
+      item.shortDescription ??
+      item.description ??
+      "",
+  );
   if (overview) {
     return overview;
   }
@@ -194,9 +202,25 @@ function mapTmdbItems(payload: unknown): MediaLookupResult[] {
     .filter((item) => item.title);
 }
 
+function fillMissingCovers(items: MediaLookupResult[]) {
+  const cover = items.find((item) => item.imageUrl)?.imageUrl ?? "";
+  if (!cover) {
+    return items;
+  }
+
+  return items.map((item) =>
+    item.imageUrl ? item : { ...item, imageUrl: cover },
+  );
+}
+
 function rankItems(items: MediaLookupResult[], title: string) {
-  const ranked = rankBookLookupResults(items, title);
-  return (ranked.length > 0 ? ranked : items).slice(0, 10);
+  const normalized = items.map((item) => ({
+    ...item,
+    imageUrl: normalizeLookupImageUrl(item.imageUrl),
+  }));
+  const ranked = rankBookLookupResults(normalized, title);
+  const filled = fillMissingCovers(ranked.length > 0 ? ranked : normalized);
+  return filled.slice(0, 10);
 }
 
 function found(items: MediaLookupResult[], title: string): MediaLookupResponse {
@@ -290,38 +314,59 @@ async function searchGoogleBooks(query: string): Promise<MediaLookupResult[]> {
 
 async function searchItunes(
   term: string,
-  entity: "album" | "song" | "tvSeason" | "tvShow",
+  options: {
+    media?: "movie" | "music" | "tvShow";
+    entity?: "album" | "song" | "tvSeason" | "tvShow";
+    kinds?: string[];
+    country?: string;
+  } = {},
 ): Promise<MediaLookupResult[]> {
   const endpoint = new URL(ITUNES_SEARCH_URL);
   endpoint.searchParams.set("term", term);
-  endpoint.searchParams.set("entity", entity);
-  endpoint.searchParams.set("country", "jp");
+  if (options.media) {
+    endpoint.searchParams.set("media", options.media);
+  }
+  if (options.entity) {
+    endpoint.searchParams.set("entity", options.entity);
+  }
+  endpoint.searchParams.set("country", options.country ?? "jp");
   endpoint.searchParams.set("lang", "ja_jp");
-  endpoint.searchParams.set("limit", "10");
+  endpoint.searchParams.set("limit", "15");
 
-  console.log("[MyShelf] iTunes request", { term, entity });
-  const result = await fetchJson(endpoint);
+  console.log("[MyShelf] iTunes request", {
+    term,
+    media: options.media ?? null,
+    entity: options.entity ?? null,
+    country: options.country ?? "jp",
+  });
+  const result = await fetchJson(endpoint, {
+    Accept: "application/json",
+    "User-Agent": "MyShelf/1.0 (entertainment shelf)",
+  });
   console.log("[MyShelf] iTunes status", result.status);
   if (!result.ok) {
     return [];
   }
-  return mapItunesItems(result.data);
+  return mapItunesItems(result.data, options.kinds);
 }
 
 async function searchItunesMovies(term: string): Promise<MediaLookupResult[]> {
-  const endpoint = new URL(ITUNES_SEARCH_URL);
-  endpoint.searchParams.set("term", term);
-  endpoint.searchParams.set("country", "jp");
-  endpoint.searchParams.set("lang", "ja_jp");
-  endpoint.searchParams.set("limit", "15");
-
-  console.log("[MyShelf] iTunes movie request", { term });
-  const result = await fetchJson(endpoint);
-  console.log("[MyShelf] iTunes movie status", result.status);
-  if (!result.ok) {
-    return [];
-  }
-  return mapItunesItems(result.data, ["feature-movie"]);
+  return firstNonEmpty([
+    () => searchItunes(term, { country: "jp", kinds: ["feature-movie"] }),
+    () => searchItunes(term, { country: "us", kinds: ["feature-movie"] }),
+    () =>
+      searchItunes(term, {
+        media: "movie",
+        country: "jp",
+        kinds: ["feature-movie"],
+      }),
+    () =>
+      searchItunes(term, {
+        media: "movie",
+        country: "us",
+        kinds: ["feature-movie"],
+      }),
+  ]);
 }
 
 type WikipediaSearchResponse = {
@@ -490,8 +535,8 @@ async function lookupAnime(title: string): Promise<MediaLookupResponse> {
       () => searchGoogleBooks(`${title} アニメ`),
     ]),
     searchRakutenBooks(`${title} 漫画`),
-    searchItunes(title, "tvSeason"),
-    searchItunes(title, "tvShow"),
+    searchItunes(title, { entity: "tvSeason" }),
+    searchItunes(title, { entity: "tvShow", media: "tvShow" }),
   ]);
   const items = mergeLookupResults([google, rakuten, seasons, shows]);
   return items.length > 0 ? found(items, title) : notFound();
@@ -504,16 +549,108 @@ async function lookupMovies(title: string): Promise<MediaLookupResponse> {
     searchWikipedia(title),
     searchGoogleBooks(title),
   ]);
-  const items = mergeLookupResults([tmdb, wiki, itunes, books]);
+  const items = mergeLookupResults([itunes, tmdb, wiki, books]);
   return items.length > 0 ? found(items, title) : notFound();
 }
 
 async function lookupMusic(title: string): Promise<MediaLookupResponse> {
   const items = await firstNonEmpty([
-    () => searchItunes(title, "album"),
-    () => searchItunes(title, "song"),
+    () =>
+      searchItunes(title, {
+        media: "music",
+        entity: "album",
+        country: "jp",
+      }),
+    () =>
+      searchItunes(title, {
+        media: "music",
+        entity: "album",
+        country: "us",
+      }),
+    () => searchItunes(title, { media: "music", entity: "song", country: "jp" }),
   ]);
   return items.length > 0 ? found(items, title) : notFound();
+}
+
+function enrichCatalogItem(item: MediaLookupResult): MediaLookupResult {
+  return {
+    ...item,
+    imageUrl: normalizeLookupImageUrl(item.imageUrl),
+    description: stripRichText(item.description),
+  };
+}
+
+export async function searchCatalogByCategory(
+  query: string,
+  category: WorkCategory,
+): Promise<MediaLookupResponse> {
+  const q = query.trim();
+  if (!q) {
+    return notFound();
+  }
+
+  try {
+    if (category === "movie" || category === "music") {
+      const endpoint = new URL(ITUNES_SEARCH_URL);
+      endpoint.searchParams.set("country", "jp");
+      endpoint.searchParams.set("media", category);
+      endpoint.searchParams.set("term", q);
+      if (category === "music") {
+        endpoint.searchParams.set("entity", "album");
+      }
+      endpoint.searchParams.set("limit", "12");
+      endpoint.searchParams.set("lang", "ja_jp");
+
+      console.log("[MyShelf] catalog iTunes", { category, q });
+      const result = await fetchJson(endpoint, {
+        Accept: "application/json",
+        "User-Agent": "MyShelf/1.0 (entertainment shelf)",
+      });
+      const mapped = mapItunesItems(result.data);
+      const movies = mapItunesItems(result.data, ["feature-movie"]);
+      let items = (category === "movie" ? movies : mapped).map(enrichCatalogItem);
+
+      if (items.length === 0 && category === "movie") {
+        items = (await searchItunesMovies(q)).map(enrichCatalogItem);
+      }
+      if (items.length === 0 && category === "music") {
+        items = (
+          await firstNonEmpty([
+            () =>
+              searchItunes(q, {
+                media: "music",
+                entity: "album",
+                country: "us",
+              }),
+            () =>
+              searchItunes(q, {
+                media: "music",
+                entity: "song",
+                country: "jp",
+              }),
+          ])
+        ).map(enrichCatalogItem);
+      }
+
+      return items.length > 0 ? found(items, q) : notFound();
+    }
+
+    const googleQuery = category === "anime" ? `${q} 漫画` : q;
+    const [google, extra, rakuten] = await Promise.all([
+      searchGoogleBooks(q),
+      category === "anime"
+        ? searchGoogleBooks(googleQuery)
+        : searchGoogleBooks(`intitle:${q}`),
+      searchRakutenBooks(q),
+    ]);
+    const items = mergeLookupResults([google, extra, rakuten]).map(
+      enrichCatalogItem,
+    );
+    return items.length > 0 ? found(items, q) : notFound();
+  } catch (error) {
+    console.error("[MyShelf] searchCatalogByCategory failed", { query, category }, error);
+    return notFound();
+  }
 }
 
 export function parseLookupCategory(value: string | null): WorkCategory | null {

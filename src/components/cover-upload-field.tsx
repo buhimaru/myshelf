@@ -28,6 +28,11 @@ export function CoverUploadField({
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [isUploadError, setIsUploadError] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -85,7 +90,8 @@ export function CoverUploadField({
   }
 
   const isBusy = disabled || isUploading;
-  const previewSrc = localPreview || imageUrl;
+  const visibleImageUrl = mounted ? imageUrl : "";
+  const previewSrc = mounted ? localPreview || visibleImageUrl : "";
 
   return (
     <div className="grid gap-2">
@@ -97,10 +103,11 @@ export function CoverUploadField({
         <input
           type="url"
           name="image_url"
-          value={imageUrl}
+          value={visibleImageUrl}
           onChange={(event) => onImageUrlChange(event.target.value)}
           placeholder="https://example.com/cover.jpg"
           disabled={isBusy}
+          suppressHydrationWarning
           className={fieldClassName}
         />
         <Button
@@ -127,6 +134,7 @@ export function CoverUploadField({
             src={previewSrc}
             alt="選択した表紙のプレビュー"
             className="h-20 w-16 rounded-md bg-background object-contain"
+            suppressHydrationWarning
           />
           <p className="min-w-0 truncate text-xs text-muted-foreground">
             {isUploading ? "アップロード中..." : imageUrl}

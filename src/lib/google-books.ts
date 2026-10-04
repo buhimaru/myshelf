@@ -4,6 +4,7 @@ export type MediaLookupResult = {
   authors: string;
   description: string;
   imageUrl: string;
+  image_url?: string;
 };
 
 export type BookLookupResult = MediaLookupResult;
@@ -34,6 +35,53 @@ type GoogleBooksResponse = {
 
 export function toHttpsUrl(url: string) {
   return url.replace(/^http:\/\//i, "https://");
+}
+
+/** iTunes の artworkUrl100 を 600x600 相当に変換する。 */
+export function upgradeItunesArtworkUrl(url: string) {
+  if (!url) {
+    return "";
+  }
+
+  return toHttpsUrl(url)
+    .replace(/100x100bb/gi, "600x600bb")
+    .replace(/\d+x\d+bb/gi, "600x600bb");
+}
+
+export function normalizeLookupImageUrl(url: string) {
+  if (!url) {
+    return "";
+  }
+
+  return upgradeGoogleBooksCoverUrl(upgradeItunesArtworkUrl(url));
+}
+
+export function pickLookupCoverUrl(
+  item: { imageUrl?: string | null; image_url?: string | null },
+  candidates: Array<{ imageUrl?: string | null; image_url?: string | null }> = [],
+) {
+  const direct = normalizeLookupImageUrl(item.imageUrl || item.image_url || "");
+  if (direct) {
+    return direct;
+  }
+
+  for (const candidate of candidates) {
+    const next = normalizeLookupImageUrl(
+      candidate.imageUrl || candidate.image_url || "",
+    );
+    if (next) {
+      return next;
+    }
+  }
+
+  return "";
+}
+
+export function resolveWorkImageUrl(work: {
+  image_url?: string | null;
+  imageUrl?: string | null;
+}) {
+  return pickLookupCoverUrl(work);
 }
 
 /** Google Books の表紙URLを高解像度（zoom=2）に寄せる。 */

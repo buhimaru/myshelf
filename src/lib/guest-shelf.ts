@@ -1,13 +1,35 @@
-import { isWorkCategory, type Work, type WorkCategory } from "@/lib/work";
+import { isWorkCategory, type WorkCategory } from "@/lib/work";
 
 export const GUEST_SHELF_STORAGE_KEY = "myshelf_guest_items";
 export const GUEST_SHELF_EVENT = "myshelf-guest-shelf";
+
+export type GuestWork = {
+  id: string;
+  title: string;
+  category: WorkCategory;
+  image_url: string | null;
+  imageUrl?: string;
+  description: string | null;
+  created_at?: string;
+  user_id?: string | null;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-function parseGuestWork(value: unknown): Work | null {
+function pickCoverUrl(value: {
+  imageUrl?: string | null;
+  image_url?: string | null;
+}) {
+  const fromCamel =
+    typeof value.imageUrl === "string" ? value.imageUrl.trim() : "";
+  const fromSnake =
+    typeof value.image_url === "string" ? value.image_url.trim() : "";
+  return fromCamel || fromSnake;
+}
+
+function parseGuestWork(value: unknown): GuestWork | null {
   if (!isRecord(value)) {
     return null;
   }
@@ -23,11 +45,17 @@ function parseGuestWork(value: unknown): Work | null {
     return null;
   }
 
+  const cover = pickCoverUrl({
+    imageUrl: typeof value.imageUrl === "string" ? value.imageUrl : null,
+    image_url: typeof value.image_url === "string" ? value.image_url : null,
+  });
+
   return {
     id,
     title,
     category,
-    image_url: typeof value.image_url === "string" ? value.image_url : null,
+    image_url: cover || null,
+    imageUrl: cover || undefined,
     description: typeof value.description === "string" ? value.description : null,
     created_at: typeof value.created_at === "string" ? value.created_at : undefined,
     user_id: null,
@@ -38,7 +66,7 @@ export function isGuestWorkId(id: string) {
   return id.startsWith("guest-");
 }
 
-export function readGuestShelf(): Work[] {
+export function readGuestShelf(): GuestWork[] {
   if (typeof window === "undefined") {
     return [];
   }
@@ -54,7 +82,7 @@ export function readGuestShelf(): Work[] {
     }
     return parsed
       .map(parseGuestWork)
-      .filter((work): work is Work => Boolean(work));
+      .filter((work): work is GuestWork => Boolean(work));
   } catch (error) {
     console.error("[MyShelf] guest shelf read failed", error);
     return [];
@@ -68,7 +96,7 @@ function notifyGuestShelfUpdated() {
   window.dispatchEvent(new Event(GUEST_SHELF_EVENT));
 }
 
-export function writeGuestShelf(works: Work[]) {
+export function writeGuestShelf(works: GuestWork[]) {
   if (typeof window === "undefined") {
     return;
   }
@@ -81,16 +109,19 @@ export function addGuestWork(input: {
   title: string;
   category: WorkCategory;
   imageUrl?: string | null;
+  image_url?: string | null;
   description?: string | null;
-}): Work {
-  const work: Work = {
+}): GuestWork {
+  const cover = pickCoverUrl(input);
+  const work: GuestWork = {
     id:
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? `guest-${crypto.randomUUID()}`
         : `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     title: input.title.trim(),
     category: input.category,
-    image_url: input.imageUrl?.trim() || null,
+    image_url: cover || null,
+    imageUrl: cover || undefined,
     description: input.description?.trim() || null,
     created_at: new Date().toISOString(),
     user_id: null,

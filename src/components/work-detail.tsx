@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORY_LABELS,
   isWorkCategory,
+  pickWorkCoverUrl,
   type Work,
   type WorkCategory,
 } from "@/lib/work";
@@ -26,6 +27,8 @@ type WorkDetailProps = {
 export function WorkDetail({ work }: WorkDetailProps) {
   const category = isWorkCategory(work.category) ? work.category : "book";
   const Icon = categoryIcons[category];
+
+  const posterSrc = pickWorkCoverUrl(work);
 
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10">
@@ -51,11 +54,11 @@ export function WorkDetail({ work }: WorkDetailProps) {
         </h1>
       </header>
 
-      {work.image_url ? (
+      {posterSrc ? (
         <div className="mx-auto flex w-full max-w-md items-center justify-center overflow-hidden rounded-3xl border border-border/70 bg-muted/40 p-4 shadow-sm">
           <div className="relative mx-auto h-[28rem] w-full max-h-[70vh] max-w-[18rem]">
             <WorkCover
-              src={work.image_url}
+              src={posterSrc}
               alt={`${work.title}の画像`}
               sizes="(max-width: 640px) 80vw, 20rem"
             />

@@ -8,7 +8,7 @@ import {
   MediaLookupCandidates,
 } from "@/components/media-lookup-controls";
 import { Button } from "@/components/ui/button";
-import { MEDIA_LOOKUP_NOT_FOUND, type MediaLookupResult } from "@/lib/google-books";
+import { MEDIA_LOOKUP_NOT_FOUND, pickLookupCoverUrl, type MediaLookupResult } from "@/lib/google-books";
 import { createClient } from "@/lib/supabase/client";
 import { fetchWorkMediaLookup } from "@/lib/work-media-lookup";
 import {
@@ -34,15 +34,21 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<WorkCategory>("book");
   const [imageUrl, setImageUrl] = useState("");
+  const [pendingImageUrl, setPendingImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isLookupError, setIsLookupError] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [mediaCandidates, setMediaCandidates] = useState<MediaLookupResult[]>(
     [],
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!work) {
@@ -51,7 +57,8 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
 
     setTitle(work.title);
     setCategory(isWorkCategory(work.category) ? work.category : "book");
-    setImageUrl(work.image_url ?? "");
+    setImageUrl("");
+    setPendingImageUrl(work.image_url || work.imageUrl || "");
     setDescription(work.description ?? "");
     setMessage(null);
     setIsLookupError(false);
@@ -59,23 +66,36 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
     setMediaCandidates([]);
   }, [work]);
 
+  useEffect(() => {
+    if (!mounted || !pendingImageUrl) {
+      return;
+    }
+
+    setImageUrl(pendingImageUrl);
+    setPendingImageUrl("");
+  }, [mounted, pendingImageUrl]);
+
   if (!work) {
     return null;
   }
 
   const workId = work.id;
 
-  function applyMediaLookup(item: MediaLookupResult) {
+  function applyMediaLookup(
+    item: MediaLookupResult,
+    candidates: MediaLookupResult[] = [],
+  ) {
     if (item.description) {
       setDescription(item.description);
     }
-    if (item.imageUrl) {
-      setImageUrl(item.imageUrl);
+    const cover = pickLookupCoverUrl(item, candidates);
+    if (cover) {
+      setPendingImageUrl(cover);
     }
     setMediaCandidates([]);
     setIsLookupError(false);
     setMessage(
-      item.description || item.imageUrl
+      item.description || cover
         ? `「${item.title}」の情報を入力しました。`
         : `「${item.title}」は見つかりましたが、あらすじと画像がありませんでした。`,
     );
@@ -106,7 +126,7 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
         return;
       }
 
-      applyMediaLookup(items[0]);
+      applyMediaLookup(items[0], items);
       if (items.length > 1) {
         setMediaCandidates(items);
         setMessage(
@@ -245,7 +265,7 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
               />
               <MediaLookupButton
                 isLookingUp={isLookingUp}
-                disabled={isSaving || isUploadingCover}
+                disabled={isSaving || isUploadingCover || !mounted}
                 onLookup={() => void handleMediaLookup()}
               />
             </div>
@@ -253,13 +273,13 @@ export function EditWorkDialog({ work, onClose, onSaved }: EditWorkDialogProps) 
 
           <MediaLookupCandidates
             items={mediaCandidates}
-            onSelect={applyMediaLookup}
+            onSelect={(item) => applyMediaLookup(item, mediaCandidates)}
           />
 
           <CoverUploadField
-            imageUrl={imageUrl}
+            imageUrl={mounted ? imageUrl : ""}
             onImageUrlChange={setImageUrl}
-            disabled={isSaving}
+            disabled={isSaving || !mounted}
             onUploadingChange={setIsUploadingCover}
           />
 

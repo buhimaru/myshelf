@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { upgradeGoogleBooksCoverUrl } from "@/lib/google-books";
+import { upgradeGoogleBooksCoverUrl, upgradeItunesArtworkUrl } from "@/lib/google-books";
 import { cn } from "@/lib/utils";
 
 type WorkCoverProps = {
@@ -16,7 +16,7 @@ export function WorkCover({
   className,
   sizes = "(max-width: 640px) 100vw, 24rem",
 }: WorkCoverProps) {
-  const imageSrc = upgradeGoogleBooksCoverUrl(src);
+  const imageSrc = upgradeGoogleBooksCoverUrl(upgradeItunesArtworkUrl(src));
 
   return (
     <Image

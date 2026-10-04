@@ -7,6 +7,7 @@ export type Work = {
   title: string;
   category: WorkCategory;
   image_url: string | null;
+  imageUrl?: string | null;
   description: string | null;
   created_at?: string;
   user_id?: string | null;
@@ -15,6 +16,14 @@ export type Work = {
     | { is_public?: boolean; username?: string | null; display_name?: string | null }[]
     | null;
 };
+
+export function pickWorkCoverUrl(work: {
+  image_url?: string | null;
+  imageUrl?: string | null;
+}) {
+  const raw = (work.image_url ?? work.imageUrl ?? "").trim();
+  return raw;
+}
 
 export const CATEGORY_LABELS: Record<WorkCategory, string> = {
   book: "本",
@@ -48,7 +57,8 @@ export type WorkWritePayload = {
 export function buildWorkWritePayload(input: {
   title: string;
   category: string;
-  imageUrl: string;
+  imageUrl?: string | null;
+  image_url?: string | null;
   description: string;
   userId: string;
 }): WorkWritePayload {
@@ -56,10 +66,12 @@ export function buildWorkWritePayload(input: {
     throw new Error(`不正なカテゴリです: ${input.category}`);
   }
 
+  const cover = pickWorkCoverUrl(input);
+
   return {
     title: input.title.trim(),
     category: input.category,
-    image_url: input.imageUrl.trim() || null,
+    image_url: cover || null,
     description: input.description.trim() || null,
     user_id: input.userId,
   };

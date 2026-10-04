@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { useAuth } from "@/components/auth-provider";
 import { CoverUploadField } from "@/components/cover-upload-field";
@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MEDIA_LOOKUP_NOT_FOUND, type MediaLookupResult } from "@/lib/google-books";
+import { MEDIA_LOOKUP_NOT_FOUND, pickLookupCoverUrl, type MediaLookupResult } from "@/lib/google-books";
 import { createClient } from "@/lib/supabase/client";
 import { fetchWorkMediaLookup } from "@/lib/work-media-lookup";
 import {
@@ -41,27 +41,46 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<WorkCategory>("book");
   const [imageUrl, setImageUrl] = useState("");
+  const [pendingImageUrl, setPendingImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [mediaCandidates, setMediaCandidates] = useState<MediaLookupResult[]>(
     [],
   );
 
-  function applyMediaLookup(item: MediaLookupResult) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !pendingImageUrl) {
+      return;
+    }
+
+    setImageUrl(pendingImageUrl);
+    setPendingImageUrl("");
+  }, [mounted, pendingImageUrl]);
+
+  function applyMediaLookup(
+    item: MediaLookupResult,
+    candidates: MediaLookupResult[] = [],
+  ) {
     if (item.description) {
       setDescription(item.description);
     }
-    if (item.imageUrl) {
-      setImageUrl(item.imageUrl);
+    const cover = pickLookupCoverUrl(item, candidates);
+    if (cover) {
+      setPendingImageUrl(cover);
     }
     setMediaCandidates([]);
     setIsError(false);
     setMessage(
-      item.description || item.imageUrl
+      item.description || cover
         ? `「${item.title}」の情報を入力しました。`
         : `「${item.title}」は見つかりましたが、あらすじと画像がありませんでした。`,
     );
@@ -92,7 +111,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
         return;
       }
 
-      applyMediaLookup(items[0]);
+      applyMediaLookup(items[0], items);
       if (items.length > 1) {
         setMediaCandidates(items);
         setMessage(
@@ -166,6 +185,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
       setTitle("");
       setCategory("book");
       setImageUrl("");
+      setPendingImageUrl("");
       setDescription("");
       setMediaCandidates([]);
       setIsError(false);
@@ -232,6 +252,7 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
                 />
                 <MediaLookupButton
                   isLookingUp={isLookingUp}
+                  disabled={!mounted}
                   onLookup={() => void handleMediaLookup()}
                 />
               </div>
@@ -239,13 +260,13 @@ export function AddWorkForm({ onAdded }: AddWorkFormProps) {
 
             <MediaLookupCandidates
               items={mediaCandidates}
-              onSelect={applyMediaLookup}
+              onSelect={(item) => applyMediaLookup(item, mediaCandidates)}
             />
 
             <CoverUploadField
-              imageUrl={imageUrl}
+              imageUrl={mounted ? imageUrl : ""}
               onImageUrlChange={setImageUrl}
-              disabled={isSubmitting || !user}
+              disabled={isSubmitting || !user || !mounted}
               onUploadingChange={setIsUploadingCover}
             />
 

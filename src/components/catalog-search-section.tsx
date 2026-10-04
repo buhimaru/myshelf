@@ -1,10 +1,9 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { useAuth } from "@/components/auth-provider";
-import { WorkCover } from "@/components/work-cover";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import {
   MEDIA_LOOKUP_NOT_FOUND,
+  resolveWorkImageUrl,
   type MediaLookupResult,
 } from "@/lib/google-books";
 import {
@@ -30,7 +30,7 @@ import {
   WORK_CATEGORIES,
   type WorkCategory,
 } from "@/lib/work";
-import { fetchWorkMediaLookup } from "@/lib/work-media-lookup";
+import { fetchCatalogSearch } from "@/lib/work-media-lookup";
 
 const fieldClassName =
   "h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -49,9 +49,18 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
   const [addedIds, setAddedIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!mounted) {
+      return;
+    }
+
     const keyword = query.trim();
     if (!keyword) {
       setIsError(true);
@@ -65,13 +74,21 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
     setItems([]);
 
     try {
-      const result = await fetchWorkMediaLookup(keyword, category);
-      if (result.items.length === 0) {
+      const result = await fetchCatalogSearch(keyword, category);
+      const mapped = result.items.map((item) => {
+        const imageUrl = resolveWorkImageUrl(item);
+        return {
+          ...item,
+          imageUrl,
+          description: item.description.trim(),
+        };
+      });
+      if (mapped.length === 0) {
         setIsError(true);
         setMessage(result.error || MEDIA_LOOKUP_NOT_FOUND);
         return;
       }
-      setItems(result.items);
+      setItems(mapped);
     } catch (error) {
       console.error("[MyShelf] catalog search failed", error);
       setIsError(true);
@@ -90,6 +107,7 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
     setMessage(null);
     setIsError(false);
 
+    const cover = resolveWorkImageUrl(item);
     const description = [item.authors, item.description]
       .map((value) => value.trim())
       .filter(Boolean)
@@ -101,7 +119,7 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
         const payload = buildWorkWritePayload({
           title: item.title,
           category,
-          imageUrl: item.imageUrl,
+          imageUrl: cover,
           description,
           userId: user.id,
         });
@@ -131,10 +149,13 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
       }
 
       addGuestWork({
+        id: `guest-${item.id}`,
         title: item.title,
         category,
-        imageUrl: item.imageUrl,
+        imageUrl: cover ? cover.replace(/^http:/, 'https:') : undefined,
+        image_url: cover ? cover.replace(/^http:/, 'https:') : undefined, //
         description,
+       
       });
       setAddedIds((current) =>
         current.includes(item.id) ? current : [...current, item.id],
@@ -199,7 +220,7 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
             className="h-10 w-full rounded-xl border border-input bg-background py-2 pr-3 pl-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         </label>
-        <Button type="submit" disabled={isSearching} className="shrink-0">
+        <Button type="submit" disabled={isSearching || !mounted} className="shrink-0">
           {isSearching ? "検索中..." : "検索"}
         </Button>
       </form>
@@ -213,47 +234,54 @@ export function CatalogSearchSection({ onAdded }: CatalogSearchSectionProps) {
         </p>
       ) : null}
 
-      {items.length > 0 ? (
+      {mounted && items.length > 0 ? (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => {
             const isAdded = addedIds.includes(item.id);
+            const cover = resolveWorkImageUrl(item);
+            const synopsis = item.description.trim();
             return (
               <li key={item.id}>
-                <Card className="h-full bg-card/80">
-                  {item.imageUrl ? (
-                    <div className="relative mx-auto h-48 w-full max-w-[12rem] bg-muted/40">
-                      <WorkCover src={item.imageUrl} alt="" sizes="12rem" />
-                    </div>
-                  ) : null}
-                  <CardHeader>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {CATEGORY_LABELS[category]}
-                    </p>
-                    <CardTitle>{item.title}</CardTitle>
-                    {item.authors ? (
-                      <p className="text-xs text-muted-foreground">{item.authors}</p>
-                    ) : null}
-                    {item.description ? (
-                      <CardDescription className="line-clamp-4">
-                        {item.description}
+                <Card className="flex h-full flex-row items-start gap-3 overflow-hidden bg-card/80 p-3">
+                  <img
+                    src={cover || "/placeholder.png"}
+                    alt={item.title}
+                    className="h-36 w-24 shrink-0 rounded-md object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = "/placeholder.png";
+                    }}
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <CardHeader className="p-0 pb-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {CATEGORY_LABELS[category]}
+                      </p>
+                      <CardTitle className="text-base">{item.title}</CardTitle>
+                      {item.authors ? (
+                        <p className="text-xs text-muted-foreground">{item.authors}</p>
+                      ) : null}
+                      <CardDescription className="line-clamp-3 text-xs mt-1">
+                        {synopsis || "あらすじはありません。"}
                       </CardDescription>
-                    ) : null}
-                  </CardHeader>
-                  <CardFooter className="mt-auto">
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="w-full"
-                      disabled={isAdded || addingId === item.id || isLoading}
-                      onClick={() => void handleAdd(item)}
-                    >
-                      {isAdded
-                        ? "追加済み"
-                        : addingId === item.id
-                          ? "追加中..."
-                          : "自分の棚に追加"}
-                    </Button>
-                  </CardFooter>
+                    </CardHeader>
+                    <CardFooter className="mt-auto p-0 pt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full text-xs"
+                        disabled={isAdded || addingId === item.id || isLoading}
+                        onClick={() => void handleAdd(item)}
+                      >
+                        {isAdded
+                          ? "追加済み"
+                          : addingId === item.id
+                            ? "追加中..."
+                            : "自分の棚に追加"}
+                      </Button>
+                    </CardFooter>
+                  </div>
                 </Card>
               </li>
             );

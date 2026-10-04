@@ -18,10 +18,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WorkCard } from "@/components/work-card";
+import { GuestShelfSection } from "@/components/guest-shelf-section";
 import {
   GUEST_SHELF_EVENT,
   GUEST_SHELF_STORAGE_KEY,
   readGuestShelf,
+  type GuestWork,
 } from "@/lib/guest-shelf";
 import { createClient } from "@/lib/supabase/client";
 import { selectOwnWorks, filterOwnWorks } from "@/lib/own-works";
@@ -54,7 +56,7 @@ export function WorksHome({
   const [selectedCategory, setSelectedCategory] =
     useState<FilterCategory>("all");
   const [editingWork, setEditingWork] = useState<Work | null>(null);
-  const [guestWorks, setGuestWorks] = useState<Work[]>([]);
+  const [guestWorks, setGuestWorks] = useState<GuestWork[]>([]);
   const [mounted, setMounted] = useState(false);
 
   function reloadGuestShelf() {
@@ -180,19 +182,27 @@ export function WorksHome({
       </Card>
     );
   } else if (!shelfError) {
-    worksContent = (
-      <ul className="grid gap-4 sm:grid-cols-2">
-        {filteredWorks.map((work) => (
-          <li key={work.id}>
-            <WorkCard
-              work={work}
-              onEdit={user?.id ? setEditingWork : undefined}
-              onDeleted={user?.id ? refreshWorks : reloadGuestShelf}
-            />
-          </li>
-        ))}
-      </ul>
-    );
+    worksContent =
+      user?.id ? (
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {filteredWorks.map((work) => (
+            <li key={work.id}>
+              <WorkCard
+                work={work}
+                onEdit={setEditingWork}
+                onDeleted={refreshWorks}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <GuestShelfSection
+          works={guestWorks.filter((work) =>
+            filteredWorks.some((item) => item.id === work.id),
+          )}
+          onDeleted={reloadGuestShelf}
+        />
+      );
   }
 
   return (
