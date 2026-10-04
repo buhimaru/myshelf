@@ -7,9 +7,10 @@ import { WorkCard } from "@/components/work-card";
 export type GuestShelfSectionProps = {
   works?: GuestWork[];
   onDeleted?: () => void;
+  onEdit?: (work: any) => void;
 };
 
-export function GuestShelfSection({ works: propsWorks, onDeleted }: GuestShelfSectionProps) {
+export function GuestShelfSection({ works: propsWorks, onDeleted, onEdit }: GuestShelfSectionProps) {
   const [localWorks, setLocalWorks] = useState<GuestWork[]>([]);
 
   const loadShelf = () => {
@@ -24,7 +25,6 @@ export function GuestShelfSection({ works: propsWorks, onDeleted }: GuestShelfSe
     };
   }, []);
 
-  // 親から works が渡されている場合はそれを優先し、無ければ localStorage のデータを使用
   const displayWorks = propsWorks || localWorks;
 
   const handleRemove = (idOrTitle: string) => {
@@ -35,7 +35,7 @@ export function GuestShelfSection({ works: propsWorks, onDeleted }: GuestShelfSe
     }
   };
 
-  if (displayWorks.length === 0) {
+  if (!displayWorks || displayWorks.length === 0) {
     return null;
   }
 
@@ -48,6 +48,7 @@ export function GuestShelfSection({ works: propsWorks, onDeleted }: GuestShelfSe
             work={work}
             onRemove={() => handleRemove(work.id || work.title)}
             onDeleted={() => handleRemove(work.id || work.title)}
+            onEdit={onEdit}
           />
         ))}
       </div>
