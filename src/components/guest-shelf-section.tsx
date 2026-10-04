@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { readGuestShelf, removeGuestWork, GuestWork } from "@/lib/guest-shelf";
-import { WorkCard } from "@/components/work-card";
+import WorkCard from "@/components/work-card";
 
 export type GuestShelfSectionProps = {
   works?: GuestWork[];
@@ -28,8 +28,8 @@ export function GuestShelfSection({ works: propsWorks, onDeleted, onEdit }: Gues
   const displayWorks = propsWorks || localWorks;
 
   const handleRemove = (idOrTitle: string) => {
-    const updated = removeGuestWork(idOrTitle);
-    setLocalWorks(updated);
+    removeGuestWork(idOrTitle);
+    loadShelf();
     if (onDeleted) {
       onDeleted();
     }
