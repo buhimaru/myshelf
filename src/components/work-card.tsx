@@ -1,51 +1,45 @@
+"use client";
+
 import React from "react";
 
 export type WorkCardProps = {
   work: any;
-  onRemove?: (id: string) => void;
-  onDeleted?: (id: string) => void;
-  onEdit?: (work: any) => void;
+  onRemove?: () => void;
+  onDeleted?: () => void;
+  onEdit?: (work?: any) => void;
 };
 
 export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
-  // 画像URLを取得。無ければダミー画像を表示
-  const imageUrl =
-    work?.imageUrl ||
-    work?.image_url ||
-    work?.image ||
-    work?.cover ||
-    "https://placehold.co/100x150?text=No+Image";
-
   const handleRemove = () => {
-    if (onDeleted) {
-      onDeleted(work.id || work.title);
-    } else if (onRemove) {
-      onRemove(work.id || work.title);
-    }
+    if (onRemove) onRemove();
+    if (onDeleted) onDeleted();
   };
 
+  const displayImage = work?.imageUrl || work?.image_url;
+
   return (
-    <div className="border rounded-lg p-3 shadow-sm bg-card text-card-foreground flex gap-3 items-start">
-      {/* 左側に固定サイズの画像エリア（絶対消えないように設定） */}
-      <div className="h-32 w-24 shrink-0 rounded overflow-hidden bg-muted border">
-        <img
-          src={imageUrl}
-          alt={work?.title || "作品画像"}
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://placehold.co/100x150?text=No+Image";
-          }}
-        />
+    <div className="flex bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden min-h-[140px]">
+      {/* 左側：画像エリア（画像がない場合も灰色枠を表示） */}
+      <div className="relative w-28 sm:w-36 bg-muted flex-shrink-0 flex items-center justify-center border-r">
+        {displayImage ? (
+          <img
+            src={displayImage}
+            alt={work?.title || "作品画像"}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-xs text-muted-foreground p-2 text-center">
+            No Image
+          </div>
+        )}
       </div>
 
-      {/* 右側にテキストとボタン */}
-      <div className="flex flex-col justify-between flex-1 min-w-0 h-full">
+      {/* 右側：情報エリア */}
+      <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
         <div>
-          <span className="inline-block text-xs px-2 py-0.5 bg-secondary rounded mb-1">
-            {work?.category}
-          </span>
+          <div className="text-xs text-muted-foreground mb-1">
+            {work?.category === "movie" ? "🎬 映画" : work?.category || "作品"}
+          </div>
           <h3 className="font-bold text-base line-clamp-1">{work?.title}</h3>
           {work?.description && (
             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
@@ -54,23 +48,21 @@ export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
           )}
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-3 flex gap-2">
           {onEdit && (
             <button
               onClick={() => onEdit(work)}
-              className="text-xs text-primary hover:underline"
+              className="py-1.5 px-3 bg-secondary text-secondary-foreground text-xs rounded hover:opacity-90 transition-opacity"
             >
               編集
             </button>
           )}
-          {(onRemove || onDeleted) && (
-            <button
-              onClick={handleRemove}
-              className="w-full py-1.5 bg-destructive text-destructive-foreground text-xs font-medium rounded hover:bg-destructive/90"
-            >
-              棚から外す
-            </button>
-          )}
+          <button
+            onClick={handleRemove}
+            className="w-full py-1.5 bg-destructive text-destructive-foreground text-xs rounded hover:opacity-90 transition-opacity"
+          >
+            棚から外す
+          </button>
         </div>
       </div>
     </div>
