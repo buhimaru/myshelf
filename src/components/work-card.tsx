@@ -16,7 +16,7 @@ export type WorkCardProps = {
   onAdded?: () => void;
 };
 
-export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
+export function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
   const handleRemove = () => {
     if (onRemove) onRemove();
     if (onDeleted) onDeleted();
@@ -26,7 +26,7 @@ export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
 
   return (
     <div className="flex flex-row items-stretch bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full my-3">
-      {/* 左側：画像エリア（固定幅で必ず表示領域を確保） */}
+      {/* 左側：画像エリア（固定幅） */}
       <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[110px]">
         {displayImage ? (
           <img
