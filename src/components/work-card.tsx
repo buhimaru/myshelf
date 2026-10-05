@@ -25,9 +25,9 @@ export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
   const displayImage = work?.imageUrl || work?.image_url;
 
   return (
-    <div className="flex flex-row bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full my-2">
-      {/* 左側：画像枠（横幅を固定して必ずスペースを確保） */}
-      <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[120px]">
+    <div className="flex flex-row items-stretch bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full my-3">
+      {/* 左側：画像エリア（固定幅で必ず表示領域を確保） */}
+      <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[110px]">
         {displayImage ? (
           <img
             src={displayImage}
@@ -41,7 +41,7 @@ export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
         )}
       </div>
 
-      {/* 右側：情報エリアと削除ボタン */}
+      {/* 右側：タイトル・説明文・削除ボタン */}
       <div className="flex-1 p-3 flex flex-col justify-between">
         <div>
           <div className="text-xs text-muted-foreground mb-1">🎬 映画</div>
@@ -53,10 +53,10 @@ export function WorkCard({ work, onRemove, onDeleted, onEdit }: WorkCardProps) {
           )}
         </div>
 
-        <div className="mt-3">
+        <div className="mt-3 flex justify-end">
           <button
             onClick={handleRemove}
-            className="w-full py-1.5 bg-destructive text-destructive-foreground text-xs rounded hover:opacity-90 transition-opacity text-center font-medium"
+            className="px-3 py-1.5 bg-destructive text-destructive-foreground text-xs rounded hover:opacity-90 transition-opacity font-medium"
           >
             棚から外す
           </button>
