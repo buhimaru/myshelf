@@ -1,4 +1,4 @@
-import { WorksHome } from "@/components/works-home";
+import WorkHome from "@/components/works-home";
 import { filterOwnWorks } from "@/lib/own-works";
 import { selectPublicWorks } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
@@ -12,7 +12,7 @@ export default async function Home() {
   const supabase = await createClient();
   const user = (await getCurrentUser(supabase)) as { id: string } | null;
 
-  const { data: publicWorks, error: publicError } =
+  const { data: publicworks, error: publicError } =
     await selectPublicWorks(supabase);
 
   let ownWorks: Work[] = [];
@@ -39,9 +39,9 @@ export default async function Home() {
   }
 
   return (
-    <WorksHome
+    <WorkHome
       initialWorks={ownWorks}
-      initialPublicWorks={publicWorks}
+      initialPublicWorks={publicworks}
       initialAccountPublic={accountPublic}
       initialError={ownError ?? publicError?.message ?? null}
     />
