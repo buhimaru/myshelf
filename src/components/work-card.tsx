@@ -7,8 +7,11 @@ export type WorkCardProps = {
     id?: string;
     title?: string;
     description?: string;
-    imageUrl?: string;
-    image_url?: string;
+    imageUrl?: string | null;
+    image_url?: string | null;
+    thumbnail?: string | null;
+    coverUrl?: string | null;
+    [key: string]: any;
   };
   onRemove?: () => void;
   onDeleted?: () => void;
@@ -16,16 +19,20 @@ export type WorkCardProps = {
   onAdded?: () => void;
 };
 
-export function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
+export default function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
   const handleRemove = () => {
     if (onRemove) onRemove();
     if (onDeleted) onDeleted();
   };
 
-  const displayImage = work?.imageUrl || work?.image_url;
+  const displayImage =
+    work?.imageUrl ||
+    work?.image_url ||
+    work?.thumbnail ||
+    work?.coverUrl;
 
   return (
-    <div className="flex flex-row items-stretch bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full my-3">
+    <div className="flex flex-row items-stretch bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full">
       {/* 左側：画像エリア（固定幅） */}
       <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[110px]">
         {displayImage ? (
@@ -44,7 +51,7 @@ export function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
       {/* 右側：タイトル・説明文・削除ボタン */}
       <div className="flex-1 p-3 flex flex-col justify-between">
         <div>
-          <div className="text-xs text-muted-foreground mb-1">🎬 映画</div>
+          <div className="text-xs text-muted-foreground mb-1">🎬 作品</div>
           <h3 className="font-bold text-sm line-clamp-1">{work?.title}</h3>
           {work?.description && (
             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
@@ -52,7 +59,6 @@ export function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
             </p>
           )}
         </div>
-
         <div className="mt-3 flex justify-end">
           <button
             onClick={handleRemove}
@@ -65,5 +71,3 @@ export function WorkCard({ work, onRemove, onDeleted }: WorkCardProps) {
     </div>
   );
 }
-
-export default WorkCard;
