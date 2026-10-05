@@ -25,7 +25,14 @@ export default function GuestShelfSection({ works, onDeleted, onEdit }: GuestShe
           console.log(`  image_url: ${work.image_url}`);
 
           // 画像URLの取得（image_url や imageUrl に対応）
-          const posterUrl = work.imageUrl || work.image_url;
+          // あらゆるプロパティ名を総当たりでチェックして、最初にヒットしたものを採用する
+          const posterUrl = 
+            work.imageUrl || 
+            work.image_url || 
+            (work as any).poster_path || 
+            (work as any).cover || 
+            (work as any).image || 
+            null;
 
           return (
             <div
