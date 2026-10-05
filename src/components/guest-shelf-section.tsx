@@ -1,59 +1,38 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { readGuestShelf, removeGuestWork, GuestWork } from "@/lib/guest-shelf";
+import React from "react";
+import { readGuestShelf, type Guestwork } from "@/lib/guest-shelf";
 
-export type GuestShelfSectionProps = {
-  works?: GuestWork[];
+interface GuestShelfSectionProps {
+  works: Guestwork[];
   onDeleted?: () => void;
-  onEdit?: (work: any) => void;
-};
+  onEdit?: (work: Guestwork) => void;
+}
 
-export function GuestShelfSection({ works: propsWorks, onDeleted, onEdit }: GuestShelfSectionProps) {
-  const [localWorks, setLocalWorks] = useState<GuestWork[]>([]);
-
-  const loadShelf = () => {
-    setLocalWorks(readGuestShelf());
-  };
-
-  useEffect(() => {
-    loadShelf();
-    window.addEventListener("myshelf_guest_shelf_updated", loadShelf);
-    return () => {
-      window.removeEventListener("myshelf_guest_shelf_updated", loadShelf);
-    };
-  }, []);
-
-  const displayWorks = propsWorks || localWorks;
-
-  const handleRemove = (idOrTitle: string) => {
-    const updated = removeGuestWork(idOrTitle);
-    setLocalWorks(updated);
-    if (onDeleted) {
-      onDeleted();
-    }
-  };
-
-  if (!displayWorks || displayWorks.length === 0) {
+export default function GuestShelfSection({ works, onDeleted, onEdit }: GuestShelfSectionProps) {
+  if (!works || works.length === 0) {
     return null;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayWorks.map((work) => {
-          const displayImage = work?.imageUrl || work?.image_url;
+    <div className="w-full space-y-3 my-4">
+      <h2 className="text-lg font-bold px-1">仮棚 (ゲスト) の作品</h2>
+      <div className="grid grid-cols-1 gap-3">
+        {works.map((work) => {
+          // 画像URLの取得（image_url や imageUrl に対応）
+          const posterUrl = work.imageUrl || work.image_url;
+
           return (
             <div
-              key={work.id || work.title}
-              className="flex bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full"
+              key={work.id}
+              className="flex flex-row items-stretch bg-card text-card-foreground rounded-lg border shadow-sm overflow-hidden w-full"
             >
-              {/* 左側：画像枠（幅を固定して必ずスペースを確保） */}
-              <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[120px]">
-                {displayImage ? (
+              {/* 左側：ポスター画像 */}
+              <div className="w-28 sm:w-32 bg-muted flex items-center justify-center shrink-0 border-r min-h-[110px]">
+                {posterUrl ? (
                   <img
-                    src={displayImage}
-                    alt={work?.title || "作品画像"}
+                    src={posterUrl}
+                    alt={work.title || "作品画像"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -63,25 +42,20 @@ export function GuestShelfSection({ works: propsWorks, onDeleted, onEdit }: Gues
                 )}
               </div>
 
-              {/* 右側：情報エリア */}
+              {/* 右側：タイトル・説明文・削除ボタン */}
               <div className="flex-1 p-3 flex flex-col justify-between">
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">🎬 映画</div>
-                  <h3 className="font-bold text-sm line-clamp-1">{work?.title}</h3>
-                  {work?.description && (
+                  <div className="text-xs text-muted-foreground mb-1">作品</div>
+                  <h3 className="font-bold text-sm line-clamp-1">{work.title}</h3>
+                  {work.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                       {work.description}
                     </p>
                   )}
                 </div>
 
-                <div className="mt-3">
-                  <button
-                    onClick={() => handleRemove(work.id || work.title)}
-                    className="w-full py-1.5 bg-destructive text-destructive-foreground text-xs rounded hover:opacity-90 transition-opacity text-center font-medium"
-                  >
-                    棚から外す
-                  </button>
+                <div className="mt-3 flex justify-end">
+                  {/* 必要に応じてボタンやアクションを記述 */}
                 </div>
               </div>
             </div>
@@ -91,5 +65,3 @@ export function GuestShelfSection({ works: propsWorks, onDeleted, onEdit }: Gues
     </div>
   );
 }
-
-export default GuestShelfSection;
