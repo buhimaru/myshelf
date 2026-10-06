@@ -12,6 +12,7 @@ export default function Home() {
   const [items, setItems] = useState(mediaItems);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => {
     const savedItems = localStorage.getItem("myshelf-items");
   
@@ -47,15 +48,40 @@ export default function Home() {
       creator: creator,
       type: type,
     };
-  
+    if (editingId) {setItems(
+      items.map((item) =>
+        item.id === editingId
+          ? { ...item, title: title, creator: creator, type: type }
+          : item
+      )
+    );
+    setTitle("");
+    setCreator("");
+    setType("");
+    setEditingId(null);
+    setShowForm(false);
+      return;
+    }
     setItems([...items, newItem]);
     setTitle("");
     setCreator("");
     setType("");
     setShowForm(false);
+    setError("");
   };
   const handleDelete = (id: string) => {
     setItems(items.filter((item) => item.id !== id));
+  };
+  const handleEdit = (id: string) => {
+    setEditingId(id);
+    const item = items.find((item) => item.id === id);
+    if (!item) return;
+
+    setTitle(item.title);
+    setCreator(item.creator ?? "");
+    setType(item.type);
+    setShowForm(true);
+setError("");
   };
   return (
     <main>
@@ -128,6 +154,9 @@ export default function Home() {
           <h3>{item.title}</h3>
           <p>{item.creator}</p>
           <p>{item.type}</p>
+          <button onClick={() => handleEdit(item.id)}>
+  編集
+</button>
           <button onClick={() => handleDelete(item.id)}>
   削除
 </button>
