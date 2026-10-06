@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { mediaItems } from "../data/media";
 import type { MediaType } from "../types/media";
 
@@ -11,7 +11,20 @@ export default function Home() {
   const [type, setType] = useState<MediaType | "">("");
   const [items, setItems] = useState(mediaItems);
   const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    const savedItems = localStorage.getItem("myshelf-items");
   
+    if (savedItems) {
+      setItems(JSON.parse(savedItems));
+    }
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!loaded) return;
+  
+    localStorage.setItem("myshelf-items", JSON.stringify(items));
+  }, [items, loaded]);
   
   const handleAdd = () => {
     if (type === "") {
