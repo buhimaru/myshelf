@@ -41,6 +41,9 @@ export default function Home() {
     setType("");
     setShowForm(false);
   };
+  const handleDelete = (id: string) => {
+    setItems(items.filter((item) => item.id !== id));
+  };
   return (
     <main>
       <h1>myshelf</h1>
@@ -108,10 +111,13 @@ export default function Home() {
       <h2>作品一覧</h2>
 
       {items.map((item) => (
-        <div key={item.id}>
+        <div key={item.id} style={{ marginBottom: "20px" }}>
           <h3>{item.title}</h3>
           <p>{item.creator}</p>
           <p>{item.type}</p>
+          <button onClick={() => handleDelete(item.id)}>
+  削除
+</button>
         </div>
       ))}
     </main>
