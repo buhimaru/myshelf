@@ -81,56 +81,59 @@ export default function Home() {
     setCreator(item.creator ?? "");
     setType(item.type);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
 setError("");
   };
   return (
-    <main>
-      <h1>myshelf</h1>
-      <p>好きな作品を、自分だけの棚に。</p>
+    <main className="shelf">
+      <header className="shelf-header">
+        <h1 className="shelf-title">myshelf</h1>
+        <p className="shelf-lead">好きな作品を、自分だけの棚に。</p>
 
-      <button
-  onClick={() => {
-    setShowForm(!showForm);
-    setError("");
-  }}
->
-        {showForm ? "閉じる" : "＋ 作品を追加"}
-      </button>
+        <button
+          className={`btn-primary${showForm ? " is-close" : ""}`}
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingId(null);
+            setError("");
+          }}
+        >
+          {showForm ? "閉じる" : "＋ 作品を追加"}
+        </button>
+      </header>
 
       {showForm && (
-        <div>
-          <h2>作品を追加</h2>
-          {error && <p>{error}</p>}
-          <label>
+        <div className="shelf-form">
+          <h2 className="shelf-form-title">
+  {editingId ? "作品を編集" : "作品を追加"}
+</h2>
+          {error && <p className="shelf-error">{error}</p>}
+          <label className="shelf-field">
             タイトル
             <input
-  type="text"
-  placeholder="作品名を入力"
-  value={title}
-  onChange={(e) => setTitle(e.target.value)}
-/>
+              type="text"
+              placeholder="作品名を入力"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </label>
 
-          <br />
-
-          <label>
+          <label className="shelf-field">
             作者・監督・アーティスト
             <input
-  type="text"
-  placeholder="名前を入力"
-  value={creator}
-  onChange={(e) => setCreator(e.target.value)}
-/>
+              type="text"
+              placeholder="名前を入力"
+              value={creator}
+              onChange={(e) => setCreator(e.target.value)}
+            />
           </label>
 
-          <br />
-
-          <label>
+          <label className="shelf-field">
             種類
             <select
-  value={type}
-  onChange={(e) => setType(e.target.value as MediaType)}
->
+              value={type}
+              onChange={(e) => setType(e.target.value as MediaType)}
+            >
               <option value="">カテゴリーを選択</option>
               <option value="book">本</option>
               <option value="movie">映画</option>
@@ -139,29 +142,43 @@ setError("");
               <option value="drama">ドラマ</option>
             </select>
           </label>
-          <br />
 
-<button onClick={handleAdd}>
-  追加する
-</button>
+          <button className="shelf-form-submit" onClick={handleAdd}>
+          {editingId ? "変更を保存" : "追加する"}
+          </button>
         </div>
       )}
 
-      <h2>作品一覧</h2>
+      <h2 className="shelf-section-title">作品一覧</h2>
 
-      {items.map((item) => (
-        <div key={item.id} style={{ marginBottom: "20px" }}>
-          <h3>{item.title}</h3>
-          <p>{item.creator}</p>
-          <p>{item.type}</p>
-          <button onClick={() => handleEdit(item.id)}>
-  編集
-</button>
-          <button onClick={() => handleDelete(item.id)}>
-  削除
-</button>
-        </div>
-      ))}
+      <div className="shelf-list">
+        {items.map((item) => (
+          <div key={item.id} className="shelf-card">
+            <div className="shelf-card-image">NO IMAGE</div>
+            <div className="shelf-card-content">
+            <h3 className="shelf-card-title">{item.title}</h3>
+            <p className="shelf-card-creator">{item.creator}</p>
+            <p className="shelf-card-type">
+  {{
+    book: "本",
+    movie: "映画",
+    music: "音楽",
+    anime: "アニメ",
+    drama: "ドラマ",
+  }[item.type]}
+</p>
+            <div className="shelf-card-actions">
+              <button className="btn-edit" onClick={() => handleEdit(item.id)}>
+                編集
+              </button>
+              <button className="btn-delete" onClick={() => handleDelete(item.id)}>
+                削除
+              </button>
+            </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }
