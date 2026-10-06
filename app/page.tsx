@@ -10,10 +10,24 @@ export default function Home() {
   const [creator, setCreator] = useState("");
   const [type, setType] = useState<MediaType | "">("");
   const [items, setItems] = useState(mediaItems);
+  const [error, setError] = useState("");
   
   
   const handleAdd = () => {
-    if (type === "") return;
+    if (type === "") {
+      setError("カテゴリーを選択してください");
+      return;
+    };
+    if (title.trim() === "") {
+      setError("作品名を入力してください");
+      return;
+    }
+    if (creator.trim() === "") {
+      setError("作者・監督・アーティスト名を入力してください");
+      return;
+    }
+    setError("");
+    
     const newItem = {
       id: crypto.randomUUID(),
       title: title,
@@ -25,20 +39,26 @@ export default function Home() {
     setTitle("");
     setCreator("");
     setType("");
+    setShowForm(false);
   };
   return (
     <main>
       <h1>myshelf</h1>
       <p>好きな作品を、自分だけの棚に。</p>
 
-      <button onClick={() => setShowForm(!showForm)}>
+      <button
+  onClick={() => {
+    setShowForm(!showForm);
+    setError("");
+  }}
+>
         {showForm ? "閉じる" : "＋ 作品を追加"}
       </button>
 
       {showForm && (
         <div>
           <h2>作品を追加</h2>
-
+          {error && <p>{error}</p>}
           <label>
             タイトル
             <input
