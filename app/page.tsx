@@ -28,14 +28,7 @@ export default function Home() {
   useEffect(() => {
     const loadItems = async () => {
       console.log("loadItems実行", user);
-      if (!user) {
-        const savedItems = localStorage.getItem("myshelf-items");
-        if (savedItems) {
-          setItems(JSON.parse(savedItems));
-        }
-        setLoaded(true);
-        return;
-      }
+      if (!user) return;
       const { data, error } = await supabase.from("items").select("*").eq("user_id", user.id);
       console.log("Supabase data:", data, error);
       if (data) setItems(data);
@@ -209,6 +202,9 @@ setError("");
           onClick={() => {
             setShowForm(!showForm);
             setEditingId(null);
+            setTitle("");
+setCreator("");
+setType("");
             setError("");
           }}
         >
