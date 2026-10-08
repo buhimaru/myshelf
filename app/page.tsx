@@ -22,6 +22,7 @@ export default function Home() {
   const [loaded, setLoaded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
@@ -353,9 +354,24 @@ setType("");
   value={searchQuery}
   onChange={(e) => setSearchQuery(e.target.value)}
 />
+<select
+  className="shelf-search"
+  value={categoryFilter}
+  onChange={(e) => setCategoryFilter(e.target.value)}
+>
+  <option value="all">すべてのカテゴリ</option>
+  <option value="book">本</option>
+  <option value="movie">映画</option>
+  <option value="music">音楽</option>
+  <option value="anime">アニメ</option>
+  <option value="drama">ドラマ</option>
+</select>
 
       <div className="shelf-list">
       {items
+  .filter((item) =>
+    categoryFilter === "all" || item.type === categoryFilter
+  )
   .filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
   (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
