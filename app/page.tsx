@@ -162,12 +162,34 @@ if (!confirmed) return;
 setError("");
   };
   const handleSignUp = async () => {
-    const { data, error } = await supabase.auth.signUp({
+    const { data: userData } = await supabase.auth.getUser();
+  
+    if (userData.user?.is_anonymous) {
+      const { error } = await supabase.auth.updateUser({
+        email,
+        password,
+      });
+  
+      if (error) {
+        alert("アカウント登録に失敗しました: " + error.message);
+        return;
+      }
+  
+      alert("確認メールを送信しました。メールを確認してな！");
+      return;
+    }
+  
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
   
-    console.log("signup:", data, error);
+    if (error) {
+      alert("新規登録に失敗しました: " + error.message);
+      return;
+    }
+  
+    alert("登録手続きを開始しました。メールを確認してな！");
   };
   const handleSignIn = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -200,9 +222,14 @@ setError("");
     ログイン / 新規登録
   </button>
 )}
+{user?.is_anonymous && (
+  <button onClick={() => setShowAuth(true)}>
+    正式アカウントに登録
+  </button>
+)}
 {user && <p>ログイン中：{user.email}</p>}
 {user && <button onClick={handleSignOut}>ログアウト</button>}
-{showAuth && (
+{showAuth && (!user || user.is_anonymous) && (
   <div>
     <h2>ログイン / 新規登録</h2>
 
