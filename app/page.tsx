@@ -414,7 +414,7 @@ setType("");
 
 <button
   type="button"
-  className="shelf-search"
+  className="shelf-reset-button"
   onClick={handleResetFilters}
 >
   検索・絞り込みをリセット
