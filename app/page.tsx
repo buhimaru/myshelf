@@ -180,6 +180,7 @@ setError("");
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setItems([]);
   };
   return (
     <main className="shelf">
