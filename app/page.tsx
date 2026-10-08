@@ -367,6 +367,17 @@ setType("");
   <option value="drama">ドラマ</option>
 </select>
 
+{items
+  .filter((item) =>
+    categoryFilter === "all" || item.type === categoryFilter
+  )
+  .filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+  ).length === 0 && (
+    <p>該当する作品がありません。</p>
+  )}
+
       <div className="shelf-list">
       {items
   .filter((item) =>
