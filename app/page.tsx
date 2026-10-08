@@ -85,6 +85,12 @@ export default function Home() {
   
     localStorage.setItem("myshelf-items", JSON.stringify(items));
   }, [items, loaded, user]);
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    setSortOrder("newest");
+  };
  
   const handleAdd = async () => {
     if (type === "") {
@@ -405,6 +411,14 @@ setType("");
   <option value="oldest">古い順</option>
   <option value="title">作品名順</option>
 </select>
+
+<button
+  type="button"
+  className="shelf-search"
+  onClick={handleResetFilters}
+>
+  検索・絞り込みをリセット
+</button>
 
 {items
   .filter((item) =>
