@@ -184,49 +184,151 @@ body {
 
 .shelf-list {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
 }
 
 .shelf-card {
   display: flex;
-gap: 1.25rem;
-  padding: 1.25rem 1.35rem;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   box-shadow: var(--shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.shelf-card:hover {
+  box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 5px rgba(28, 25, 23, 0.04);
+  transform: translateY(-2px);
+}
+
+.shelf-card-image {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: linear-gradient(165deg, #e7e5e4 0%, #d6d3d1 48%, #c8c4c0 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.45rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(28, 25, 23, 0.25);
+  overflow: hidden;
+}
+
+.shelf-card-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 35%,
+    rgba(28, 25, 23, 0.12) 100%
+  );
+  pointer-events: none;
+}
+
+.shelf-card-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shelf-card--book .shelf-card-image {
+  background: linear-gradient(165deg, #d6d3d1 0%, #a8a29e 55%, #78716c 100%);
+}
+
+.shelf-card--movie .shelf-card-image {
+  background: linear-gradient(165deg, #cbd5e1 0%, #94a3b8 55%, #64748b 100%);
+}
+
+.shelf-card--music .shelf-card-image {
+  background: linear-gradient(165deg, #e7d5d8 0%, #c4a5ad 55%, #9f7883 100%);
+}
+
+.shelf-card--anime .shelf-card-image {
+  background: linear-gradient(165deg, #ddd6fe 0%, #a78bfa 55%, #7c3aed 100%);
+}
+
+.shelf-card--drama .shelf-card-image {
+  background: linear-gradient(165deg, #ccfbf1 0%, #5eead4 55%, #0f766e 100%);
+}
+
+.shelf-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.55rem 0.6rem;
 }
 
 .shelf-card-title {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent);
-  line-height: 1.4;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .shelf-card-creator {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.3rem;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .shelf-card-type {
   display: inline-block;
-  margin: 0 0 1rem;
-  padding: 0.2rem 0.55rem;
+  align-self: flex-start;
+  margin: 0 0 0.45rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  background: #f5f5f4;
+  background: #fafaf9;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
 }
 
 .shelf-card-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  margin-top: auto;
+  padding-top: 0.1rem;
+}
+
+.shelf-card-actions .btn-edit,
+.shelf-card-actions .btn-delete {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.3rem 0.25rem;
+  font-size: 0.68rem;
+  text-align: center;
 }
 
 .btn-edit,
@@ -264,6 +366,7 @@ gap: 1.25rem;
 
 @media (min-width: 640px) {
   .shelf {
+    max-width: 720px;
     padding: 3.5rem 2rem 5rem;
   }
 
@@ -275,20 +378,46 @@ gap: 1.25rem;
     width: auto;
     min-width: 140px;
   }
+}
+
+/* PC: 4列 */
+@media (min-width: 900px) {
+  .shelf {
+    max-width: 960px;
+  }
 
   .shelf-list {
-    gap: 1.15rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
+  .shelf-card-content {
+    padding: 0.5rem 0.55rem 0.55rem;
+  }
+
+  .shelf-card-title {
+    font-size: 0.78rem;
+  }
+
+  .shelf-card-creator {
+    font-size: 0.68rem;
+  }
+
+  .shelf-card-actions .btn-edit,
+  .shelf-card-actions .btn-delete {
+    padding: 0.28rem 0.2rem;
+    font-size: 0.65rem;
   }
 }
-.shelf-card-image {
-  width: 90px;
-  height: 120px;
-  background: #f5f5f4;
-  border: 1px solid #e7e5e4;
-  border-radius: 8px;
-  display: flex;
-align-items: center;
-justify-content: center;
-color: #a8a29e;
-font-size: 0.7rem;
+
+/* 広いPC: 5列 */
+@media (min-width: 1100px) {
+  .shelf {
+    max-width: 1120px;
+  }
+
+  .shelf-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
 }

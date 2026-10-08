@@ -14,6 +14,7 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [creator, setCreator] = useState("");
   const [type, setType] = useState<MediaType | "">("");
   const [items, setItems] = useState<typeof mediaItems>([]);
@@ -31,7 +32,15 @@ export default function Home() {
       if (!user) return;
       const { data, error } = await supabase.from("items").select("*").eq("user_id", user.id);
       console.log("Supabase data:", data, error);
-      if (data) setItems(data);
+      if (data) {
+        setItems(
+          data.map((item) => ({
+            ...item,
+            type: item.category,
+            imageUrl: item.image_url,
+          }))
+        );
+      }
       setLoaded(true);
      
     }
@@ -68,6 +77,7 @@ export default function Home() {
       title: title,
       creator: creator,
       type: type,
+      imageUrl: imageUrl,
     };
   
     if (editingId) {
@@ -77,6 +87,7 @@ export default function Home() {
     title: title,
     creator: creator,
     category: type,
+    image_url: imageUrl,
   })
   .eq("id", editingId)
   .eq("user_id", user.id);
@@ -86,13 +97,14 @@ export default function Home() {
   }
   setItems( items.map((item) =>
         item.id === editingId
-          ? { ...item, title: title, creator: creator, type: type }
+  ? { ...item, title: title, creator: creator, type: type, imageUrl: imageUrl }
           : item
       )
     );
     setTitle("");
     setCreator("");
     setType("");
+    setImageUrl("");
     setEditingId(null);
     setShowForm(false);
       return;
@@ -104,7 +116,8 @@ export default function Home() {
     title: title,
     category: type,
     creator: creator,
-user_id: user.id,
+    image_url: imageUrl,
+    user_id: user.id,
   })
   .select()
   .single();
@@ -117,14 +130,22 @@ user_id: user.id,
     setTitle("");
     setCreator("");
     setType("");
+    setImageUrl("");
     setShowForm(false);
     setError("");
   };
   const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("本当にこの作品を削除しますか？");
+
+if (!confirmed) return;
     const { error } = await supabase
   .from("items")
   .delete()
   .eq("id", id);
+  if (error) {
+    alert("削除に失敗しました: " + error.message);
+    return;
+  }
     setItems(items.filter((item) => item.id !== id));
   };
   const handleEdit = (id: string) => {
@@ -135,6 +156,7 @@ user_id: user.id,
     setTitle(item.title);
     setCreator(item.creator ?? "");
     setType(item.type);
+    setImageUrl(item.imageUrl ?? "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
 setError("");
@@ -237,7 +259,15 @@ setType("");
               onChange={(e) => setCreator(e.target.value)}
             />
           </label>
-
+          <label className="shelf-field">
+  画像URL
+  <input
+    type="text"
+    placeholder="画像URLを入力"
+    value={imageUrl}
+    onChange={(e) => setImageUrl(e.target.value)}
+  />
+</label>
           <label className="shelf-field">
             種類
             <select
@@ -263,8 +293,14 @@ setType("");
 
       <div className="shelf-list">
         {items.map((item) => (
-          <div key={item.id} className="shelf-card">
-            <div className="shelf-card-image">NO IMAGE</div>
+          <div key={item.id} className={`shelf-card shelf-card--${item.type}`}>
+            <div className="shelf-card-image">
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt={item.title} />
+              ) : (
+                "NO IMAGE"
+              )}
+            </div>
             <div className="shelf-card-content">
             <h3 className="shelf-card-title">{item.title}</h3>
             <p className="shelf-card-creator">{item.creator}</p>
