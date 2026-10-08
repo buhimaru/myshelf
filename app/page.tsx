@@ -182,6 +182,17 @@ setError("");
     setUser(null);
     setItems([]);
   };
+  const handleGuestSignIn = async () => {
+    const { data, error } = await supabase.auth.signInAnonymously();
+  
+    if (error) {
+      alert("ゲストログインに失敗しました: " + error.message);
+      return;
+    }
+  
+    setUser(data.user);
+    setShowAuth(false);
+  };
   return (
     <main className="shelf">
       {!user && (
@@ -213,6 +224,9 @@ setError("");
 </button>
 <button onClick={handleSignIn}>
   ログイン
+</button>
+<button onClick={handleGuestSignIn}>
+  ゲストとして始める
 </button>
   </div>
 )}
