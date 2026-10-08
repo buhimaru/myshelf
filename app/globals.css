@@ -448,3 +448,15 @@ body {
 .shelf-reset-button:hover {
   background: #e7e5e4;
 }
+.shelf-card-image.image-error::after {
+  content: "NO IMAGE";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  background: #64748b;
+}

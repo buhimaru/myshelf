@@ -462,7 +462,14 @@ setType("");
           <div key={item.id} className={`shelf-card shelf-card--${item.type}`}>
             <div className="shelf-card-image">
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.title} />
+                <img
+                src={item.imageUrl}
+                alt={item.title}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentElement?.classList.add("image-error");
+                }}
+              />
               ) : (
                 "NO IMAGE"
               )}
