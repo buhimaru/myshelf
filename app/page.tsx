@@ -21,10 +21,21 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
     });
+  
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+  
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
   useEffect(() => {
     const loadItems = async () => {
@@ -182,6 +193,9 @@ setError("");
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
     });
   
     if (error) {
@@ -332,9 +346,21 @@ setType("");
       )}
 
       <h2 className="shelf-section-title">作品一覧</h2>
+      <input
+      className="shelf-search"
+  type="text"
+  placeholder="作品名・作者名で検索"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+/>
 
       <div className="shelf-list">
-        {items.map((item) => (
+      {items
+  .filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  .map((item) => (
           <div key={item.id} className={`shelf-card shelf-card--${item.type}`}>
             <div className="shelf-card-image">
               {item.imageUrl ? (
@@ -369,4 +395,4 @@ setType("");
       </div>
     </main>
   );
-}
+ }
