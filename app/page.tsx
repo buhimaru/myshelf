@@ -21,9 +21,27 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("myshelf-search-query") || "";
+  });
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    if (typeof window === "undefined") return "all";
+    return localStorage.getItem("myshelf-category-filter") || "all";
+  });
+  const [sortOrder, setSortOrder] = useState(() => {
+    if (typeof window === "undefined") return "newest";
+    return localStorage.getItem("myshelf-sort-order") || "newest";
+  });
+  useEffect(() => {
+    localStorage.setItem("myshelf-sort-order", sortOrder);
+  }, [sortOrder]);
+  useEffect(() => {
+    localStorage.setItem("myshelf-category-filter", categoryFilter);
+  }, [categoryFilter]);
+  useEffect(() => {
+    localStorage.setItem("myshelf-search-query", searchQuery);
+  }, [searchQuery]);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
@@ -356,7 +374,9 @@ setType("");
         </div>
       )}
 
-      <h2 className="shelf-section-title">作品一覧</h2>
+<h2 className="shelf-section-title">
+  作品一覧（{items.length}件）
+</h2>
       <input
       className="shelf-search"
   type="text"
