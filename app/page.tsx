@@ -23,6 +23,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
@@ -50,6 +51,7 @@ export default function Home() {
             ...item,
             type: item.category,
             imageUrl: item.image_url,
+            createdAt: item.created_at,
           }))
         );
       }
@@ -138,7 +140,15 @@ export default function Home() {
     setError(insertError.message);
     return;
   }
-  setItems([...items, data]);
+  setItems([
+    ...items,
+    {
+      ...data,
+      type: data.category,
+      imageUrl: data.image_url,
+      createdAt: data.created_at,
+    },
+  ]);
     setTitle("");
     setCreator("");
     setType("");
@@ -366,6 +376,15 @@ setType("");
   <option value="anime">アニメ</option>
   <option value="drama">ドラマ</option>
 </select>
+<select
+  className="shelf-search"
+  value={sortOrder}
+  onChange={(e) => setSortOrder(e.target.value)}
+>
+  <option value="newest">新しい順</option>
+  <option value="oldest">古い順</option>
+  <option value="title">作品名順</option>
+</select>
 
 {items
   .filter((item) =>
@@ -379,7 +398,25 @@ setType("");
   )}
 
       <div className="shelf-list">
-      {items
+      {[...items]
+  .sort((a, b) => {
+    if (sortOrder === "title") {
+      return a.title.localeCompare(b.title, "ja");
+    }
+  
+    const dateA = new Date(a.createdAt ?? 0).getTime();
+    const dateB = new Date(b.createdAt ?? 0).getTime();
+  
+    if (sortOrder === "newest") {
+      return dateB - dateA;
+    }
+  
+    if (sortOrder === "oldest") {
+      return dateA - dateB;
+    }
+  
+    return 0;
+  })
   .filter((item) =>
     categoryFilter === "all" || item.type === categoryFilter
   )
