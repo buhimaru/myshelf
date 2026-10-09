@@ -21,6 +21,11 @@ const [bookSearchLoading, setBookSearchLoading] = useState(false);
   const [movieSearchQuery, setMovieSearchQuery] = useState("");
   const [movieSearchResults, setMovieSearchResults] = useState<any[]>([]);
   const [movieSearchLoading, setMovieSearchLoading] = useState(false);
+  const [musicSearchQuery, setMusicSearchQuery] = useState("");
+  const [musicSearchResults, setMusicSearchResults] = useState<any[]>([]);
+  const [musicSearchLoading, setMusicSearchLoading] = useState(false);
+  const [musicSearchError, setMusicSearchError] = useState("");
+  const [musicHasSearched, setMusicHasSearched] = useState(false);
 
 const handleSelectBook = (book: any) => {
   setTitle(book.title ?? "");
@@ -96,6 +101,53 @@ const handleMovieSearch = async () => {
     alert("映画の検索に失敗しました");
   } finally {
     setMovieSearchLoading(false);
+  }
+};
+
+const handleSelectMusic = (music: any) => {
+  setTitle(music.title ?? "");
+  setCreator(music.creator ?? "");
+  setType("music");
+  setImageUrl(music.imageUrl ?? "");
+
+  setEditingId(null);
+  setError("");
+  setShowForm(true);
+  setMusicSearchResults([]);
+  setMusicSearchError("");
+  setMusicHasSearched(false);
+};
+
+const handleMusicSearch = async () => {
+  if (!musicSearchQuery.trim()) return;
+
+  setMusicSearchLoading(true);
+  setMusicSearchError("");
+  setMusicHasSearched(false);
+
+  try {
+    const response = await fetch(
+      `/api/music?q=${encodeURIComponent(musicSearchQuery)}`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "検索に失敗しました");
+    }
+
+    setMusicSearchResults(data.results ?? []);
+    setMusicHasSearched(true);
+    console.log("音楽の検索結果:", data.results);
+  } catch (error) {
+    console.error("音楽の検索エラー:", error);
+    setMusicSearchResults([]);
+    setMusicSearchError(
+      error instanceof Error ? error.message : "音楽の検索に失敗しました"
+    );
+    setMusicHasSearched(true);
+  } finally {
+    setMusicSearchLoading(false);
   }
 };
   const [creator, setCreator] = useState("");
@@ -493,6 +545,81 @@ setType("");
   onClick={() => handleSelectMovie(movie)}
 >
   この映画を選ぶ
+</button>
+  </div>
+))}
+</div>
+
+      <div className="shelf-form">
+  <h2 className="shelf-form-title">音楽を検索（テスト）</h2>
+
+  <input
+    type="text"
+    placeholder="アルバム名・アーティスト名を入力"
+    value={musicSearchQuery}
+    onChange={(e) => setMusicSearchQuery(e.target.value)}
+  />
+
+  <button
+    type="button"
+    onClick={handleMusicSearch}
+    disabled={musicSearchLoading}
+  >
+    {musicSearchLoading ? "検索中..." : "音楽を検索"}
+  </button>
+
+  {musicSearchLoading && <p>検索中...</p>}
+
+  {!musicSearchLoading && musicSearchError && (
+    <p className="shelf-error">{musicSearchError}</p>
+  )}
+
+  {!musicSearchLoading &&
+    !musicSearchError &&
+    musicHasSearched &&
+    musicSearchResults.length === 0 && (
+      <p>検索結果がありません</p>
+    )}
+
+  {!musicSearchLoading &&
+    musicSearchResults.map((music, index) => (
+  <div key={`${music.id}-${index}`}>
+    {music.imageUrl ? (
+      <img
+        src={music.imageUrl}
+        alt={music.title}
+        style={{
+          width: "80px",
+          height: "110px",
+          objectFit: "cover",
+        }}
+      />
+    ) : (
+      <div
+        style={{
+          width: "80px",
+          height: "110px",
+          background: "#f5f5f4",
+          border: "1px solid #e7e5e4",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "0.7rem",
+          color: "#a8a29e",
+        }}
+      >
+        NO IMAGE
+      </div>
+    )}
+
+    <div>
+      {music.title} — {music.creator || "アーティスト不明"}
+    </div>
+    <button
+  type="button"
+  onClick={() => handleSelectMusic(music)}
+>
+  この音楽を選ぶ
 </button>
   </div>
 ))}
