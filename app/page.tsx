@@ -15,6 +15,89 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [bookSearchQuery, setBookSearchQuery] = useState("");
+const [bookSearchResults, setBookSearchResults] = useState<any[]>([]);
+const [bookSearchLoading, setBookSearchLoading] = useState(false);
+  const [movieSearchQuery, setMovieSearchQuery] = useState("");
+  const [movieSearchResults, setMovieSearchResults] = useState<any[]>([]);
+  const [movieSearchLoading, setMovieSearchLoading] = useState(false);
+
+const handleSelectBook = (book: any) => {
+  setTitle(book.title ?? "");
+  setCreator(book.creator ?? "");
+  setType("book");
+
+  setImageUrl(book.imageUrl ?? "");
+
+  setEditingId(null);
+  setError("");
+  setShowForm(true);
+  setBookSearchResults([]);
+};
+
+const handleBookSearch = async () => {
+  if (!bookSearchQuery.trim()) return;
+
+  setBookSearchLoading(true);
+
+  try {
+    const response = await fetch(
+      `/api/books?q=${encodeURIComponent(bookSearchQuery)}`
+    );
+
+    if (!response.ok) {
+      throw new Error("検索に失敗しました");
+    }
+
+    const data = await response.json();
+
+    setBookSearchResults(data.results ?? []);
+    console.log("本の検索結果:", data.results);
+  } catch (error) {
+    console.error("本の検索エラー:", error);
+    alert("本の検索に失敗しました");
+  } finally {
+    setBookSearchLoading(false);
+  }
+};
+
+const handleSelectMovie = (movie: any) => {
+  setTitle(movie.title ?? "");
+  setCreator(movie.creator ?? "");
+  setType("movie");
+  setImageUrl(movie.imageUrl ?? "");
+
+  setEditingId(null);
+  setError("");
+  setShowForm(true);
+  setMovieSearchResults([]);
+};
+
+const handleMovieSearch = async () => {
+  if (!movieSearchQuery.trim()) return;
+
+  setMovieSearchLoading(true);
+
+  try {
+    const response = await fetch(
+      `/api/movies?q=${encodeURIComponent(movieSearchQuery)}`
+    );
+
+    if (!response.ok) {
+      throw new Error("検索に失敗しました");
+    }
+
+    const data = await response.json();
+
+    setMovieSearchResults(data.results ?? []);
+    console.log("映画の検索結果:", data.results);
+  } catch (error) {
+    console.error("映画の検索エラー:", error);
+    alert("映画の検索に失敗しました");
+  } finally {
+    setMovieSearchLoading(false);
+  }
+};
   const [creator, setCreator] = useState("");
   const [type, setType] = useState<MediaType | "">("");
   const [items, setItems] = useState<typeof mediaItems>([]);
@@ -324,6 +407,96 @@ setType("");
           {showForm ? "閉じる" : "＋ 作品を追加"}
         </button>
       </header>
+
+      <div className="shelf-form">
+  <h2 className="shelf-form-title">本を検索（テスト）</h2>
+
+  <input
+    type="text"
+    placeholder="本のタイトルを入力"
+    value={bookSearchQuery}
+    onChange={(e) => setBookSearchQuery(e.target.value)}
+  />
+
+  <button
+    type="button"
+    onClick={handleBookSearch}
+    disabled={bookSearchLoading}
+  >
+    {bookSearchLoading ? "検索中..." : "本を検索"}
+  </button>
+
+  {bookSearchResults.map((book, index) => (
+  <div key={`${book.id}-${index}`}>
+    {book.imageUrl && (
+      <img
+        src={book.imageUrl}
+        alt={book.title}
+        style={{
+          width: "80px",
+          height: "110px",
+          objectFit: "cover",
+        }}
+      />
+    )}
+
+    <div>
+      {book.title} — {book.creator || "著者不明"}
+    </div>
+    <button
+  type="button"
+  onClick={() => handleSelectBook(book)}
+>
+  この本を選ぶ
+</button>
+  </div>
+))}
+</div>
+
+      <div className="shelf-form">
+  <h2 className="shelf-form-title">映画を検索（テスト）</h2>
+
+  <input
+    type="text"
+    placeholder="映画のタイトルを入力"
+    value={movieSearchQuery}
+    onChange={(e) => setMovieSearchQuery(e.target.value)}
+  />
+
+  <button
+    type="button"
+    onClick={handleMovieSearch}
+    disabled={movieSearchLoading}
+  >
+    {movieSearchLoading ? "検索中..." : "映画を検索"}
+  </button>
+
+  {movieSearchResults.map((movie, index) => (
+  <div key={`${movie.id}-${index}`}>
+    {movie.imageUrl && (
+      <img
+        src={movie.imageUrl}
+        alt={movie.title}
+        style={{
+          width: "80px",
+          height: "110px",
+          objectFit: "cover",
+        }}
+      />
+    )}
+
+    <div>
+      {movie.title} — {movie.creator || "監督不明"}
+    </div>
+    <button
+  type="button"
+  onClick={() => handleSelectMovie(movie)}
+>
+  この映画を選ぶ
+</button>
+  </div>
+))}
+</div>
 
       {showForm && (
         <div className="shelf-form">
