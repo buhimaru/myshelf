@@ -155,11 +155,19 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
           <div className="lp-hero-copy">
             <p className="lp-brand">myshelf</p>
             <h1 className="lp-hero-title">
-              あなたの中に残っている作品を、ひとつの棚に。
+              <span className="lp-hero-title-line">
+                あなたの中に残っている作品を、
+              </span>
+              <span className="lp-hero-title-line">ひとつの棚に。</span>
             </h1>
             <p className="lp-hero-sub">本も、映画も、音楽も、漫画も。</p>
             <p className="lp-hero-desc">
-              好きだった作品、忘れられない作品を、ジャンルを超えて自由に並べられます。
+              <span className="lp-hero-desc-line">
+                好きだった作品、忘れられない作品を、
+              </span>
+              <span className="lp-hero-desc-line">
+                ジャンルを超えて自由に並べられます。
+              </span>
             </p>
             <div className="lp-hero-actions">
               <button

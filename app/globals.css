@@ -600,11 +600,15 @@ body {
 
 .lp-hero-title {
   margin: 0 0 1rem;
-  font-size: clamp(1.55rem, 4.5vw, 2.35rem);
+  font-size: clamp(1.55rem, 4.5vw, 2.1rem);
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.4;
   letter-spacing: -0.03em;
   color: var(--accent);
+}
+
+.lp-hero-title-line {
+  display: inline;
 }
 
 .lp-hero-sub {
@@ -620,6 +624,10 @@ body {
   color: var(--muted);
   font-size: 0.98rem;
   line-height: 1.75;
+}
+
+.lp-hero-desc-line {
+  display: inline;
 }
 
 .lp-hero-actions {
@@ -1066,10 +1074,36 @@ body {
   }
 
   .lp-hero {
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     align-items: center;
     padding: 4rem 2rem 3.5rem;
     gap: 3rem;
+  }
+
+  .lp-hero-copy {
+    min-width: 0;
+  }
+
+  .lp-hero-title {
+    font-size: clamp(1.7rem, 2.2vw, 2.05rem);
+    letter-spacing: -0.02em;
+  }
+
+  /* PCでは指定位置でのみ改行する */
+  .lp-hero-title-line {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .lp-hero-desc {
+    max-width: 100%;
+    font-size: 0.95rem;
+    line-height: 1.85;
+  }
+
+  /* PCでは説明文を自然な2行に固定し、末尾1文字の孤立を防ぐ */
+  .lp-hero-desc-line {
+    display: block;
   }
 
   .lp-hero-actions {
@@ -1095,5 +1129,368 @@ body {
 
   .lp-simple {
     padding: 3.5rem 2rem 5rem;
+  }
+}
+
+/* Logged-in collection: 自分の棚 */
+.my-shelf {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 80% 45% at 50% -8%, #fafaf9 0%, transparent 55%),
+    #ffffff;
+  color: var(--foreground);
+}
+
+.my-shelf-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+.my-shelf-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0.9rem 1.25rem;
+}
+
+.my-shelf-logo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.my-shelf-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.my-shelf-user {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.my-shelf-text-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  padding: 0;
+}
+
+.my-shelf-auth {
+  width: min(100% - 2.5rem, 420px);
+  margin: 1.25rem auto 0;
+}
+
+.my-shelf-auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.my-shelf-auth-actions .btn-primary {
+  margin-top: 0;
+}
+
+.my-shelf-main {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4.5rem;
+}
+
+.my-shelf-intro {
+  margin-bottom: 1.75rem;
+}
+
+.my-shelf-heading {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.45rem, 3.5vw, 1.85rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.my-shelf-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.my-shelf-intro .btn-primary {
+  margin-top: 1.25rem;
+}
+
+.my-shelf-compose {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.my-shelf-compose .shelf-form input[type="text"],
+.my-shelf-compose .shelf-form input:not([type]),
+.my-shelf-compose .shelf-form button {
+  margin-top: 0.5rem;
+}
+
+.my-shelf-search-hit {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.my-shelf-search-hit img,
+.my-shelf-search-hit-placeholder {
+  width: 56px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #f5f5f4;
+  border: 1px solid var(--border);
+}
+
+.my-shelf-search-hit-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8a29e;
+  font-size: 0.62rem;
+}
+
+.my-shelf-search-hit button {
+  margin-top: 0 !important;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.my-shelf-toolbar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.my-shelf-control,
+.my-shelf-reset {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fafaf9;
+  color: var(--foreground);
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+
+.my-shelf-reset {
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.my-shelf-reset:hover {
+  background: #fafaf9;
+}
+
+.my-shelf-count {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.my-shelf-empty {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.my-shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 0.85rem;
+}
+
+.my-shelf-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.my-shelf-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(28, 25, 23, 0.06);
+  background: #f5f5f4;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+}
+
+.my-shelf-cover img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.my-shelf-cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.75rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.my-shelf-item--book .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #d6d3d1 0%, #a8a29e 55%, #78716c 100%);
+}
+
+.my-shelf-item--manga .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #ebe4dc 0%, #c4b5a5 55%, #8a7a6b 100%);
+}
+
+.my-shelf-item--movie .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #cbd5e1 0%, #94a3b8 55%, #64748b 100%);
+}
+
+.my-shelf-item--music .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #e7d5d8 0%, #c4a5ad 55%, #9f7883 100%);
+}
+
+.my-shelf-item--game .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #dde5e2 0%, #9bb0a8 55%, #5f746c 100%);
+}
+
+.my-shelf-item--anime .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #e7e5e4 0%, #a8a29e 50%, #57534e 100%);
+}
+
+.my-shelf-item--drama .my-shelf-cover-fallback {
+  background: linear-gradient(165deg, #e4ebe8 0%, #a7b8b0 55%, #6b7f76 100%);
+}
+
+.my-shelf-meta {
+  padding: 0.65rem 0.1rem 0;
+}
+
+.my-shelf-item-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--accent);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.my-shelf-item-creator {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-shelf-item-type {
+  margin: 0 0 0.5rem;
+  color: #a8a29e;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.my-shelf-item-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.my-shelf-item-actions button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.my-shelf-item-actions button:hover {
+  color: var(--accent);
+}
+
+@media (min-width: 640px) {
+  .my-shelf-main {
+    padding: 2.75rem 2rem 5rem;
+  }
+
+  .my-shelf-toolbar {
+    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 0.8fr)) auto;
+    align-items: center;
+  }
+
+  .my-shelf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1.5rem 1.1rem;
+  }
+}
+
+@media (min-width: 960px) {
+  .my-shelf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    gap: 1.75rem 1.25rem;
+  }
+
+  .my-shelf-item-title {
+    font-size: 0.92rem;
   }
 }

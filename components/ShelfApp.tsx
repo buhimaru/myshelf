@@ -271,13 +271,9 @@ const handleMusicSearch = async () => {
     if (type === "") {
       setError("カテゴリーを選択してください");
       return;
-    };
+    }
     if (title.trim() === "") {
       setError("作品名を入力してください");
-      return;
-    }
-    if (creator.trim() === "") {
-      setError("作者・監督・アーティスト名を入力してください");
       return;
     }
     setError("");
@@ -285,69 +281,73 @@ const handleMusicSearch = async () => {
       setError("ログインしてください");
       return;
     }
-    const newItem = {
-      id: crypto.randomUUID(),
-      title: title,
-      creator: creator,
-      type: type,
-      imageUrl: imageUrl,
-    };
-  
+
+    const trimmedTitle = title.trim();
+    const creatorValue = creator.trim() === "" ? null : creator.trim();
+    const imageUrlValue = imageUrl.trim();
+
     if (editingId) {
       const { error: updateError } = await supabase
-  .from("items")
-  .update({
-    title: title,
-    creator: creator,
-    category: type,
-    image_url: imageUrl,
-  })
-  .eq("id", editingId)
-  .eq("user_id", user.id);
-  if (updateError) {
-    setError(updateError.message);
-    return;
-  }
-  setItems( items.map((item) =>
-        item.id === editingId
-  ? { ...item, title: title, creator: creator, type: type, imageUrl: imageUrl }
-          : item
-      )
-    );
-    setTitle("");
-    setCreator("");
-    setType("");
-    setImageUrl("");
-    setEditingId(null);
-    setShowForm(false);
+        .from("items")
+        .update({
+          title: trimmedTitle,
+          creator: creatorValue,
+          category: type,
+          image_url: imageUrlValue,
+        })
+        .eq("id", editingId)
+        .eq("user_id", user.id);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      setItems(
+        items.map((item) =>
+          item.id === editingId
+            ? {
+                ...item,
+                title: trimmedTitle,
+                creator: creatorValue,
+                type: type,
+                imageUrl: imageUrlValue,
+              }
+            : item
+        )
+      );
+      setTitle("");
+      setCreator("");
+      setType("");
+      setImageUrl("");
+      setEditingId(null);
+      setShowForm(false);
       return;
     }
-    
+
     const { data, error: insertError } = await supabase
-  .from("items")
-  .insert({
-    title: title,
-    category: type,
-    creator: creator,
-    image_url: imageUrl,
-    user_id: user.id,
-  })
-  .select()
-  .single();
-  
-  if (insertError) {
-    setError(insertError.message);
-    return;
-  }
-  setItems([
-    ...items,
-    {
-      ...data,
-      type: data.category,
-      imageUrl: data.image_url,
-      createdAt: data.created_at,
-    },
-  ]);
+      .from("items")
+      .insert({
+        title: trimmedTitle,
+        category: type,
+        creator: creatorValue,
+        image_url: imageUrlValue,
+        user_id: user.id,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    setItems([
+      ...items,
+      {
+        ...data,
+        type: data.category,
+        imageUrl: data.image_url,
+        createdAt: data.created_at,
+      },
+    ]);
     setTitle("");
     setCreator("");
     setType("");
@@ -439,454 +439,430 @@ setError("");
     setUser(data.user);
     setShowAuth(false);
   };
+  const typeLabel: Record<string, string> = {
+    book: "本",
+    manga: "漫画",
+    movie: "映画",
+    music: "音楽",
+    game: "ゲーム",
+    anime: "アニメ",
+    drama: "ドラマ",
+  };
+
+  const visibleItems = [...items]
+    .sort((a, b) => {
+      if (sortOrder === "title") {
+        return a.title.localeCompare(b.title, "ja");
+      }
+
+      const dateA = new Date(a.createdAt ?? 0).getTime();
+      const dateB = new Date(b.createdAt ?? 0).getTime();
+
+      if (sortOrder === "newest") {
+        return dateB - dateA;
+      }
+
+      if (sortOrder === "oldest") {
+        return dateA - dateB;
+      }
+
+      return 0;
+    })
+    .filter((item) => categoryFilter === "all" || item.type === categoryFilter)
+    .filter(
+      (item) =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
   return (
-    <main className="shelf">
-      {!user && (
-  <button onClick={() => setShowAuth(true)}>
-    ログイン / 新規登録
-  </button>
-)}
-{user?.is_anonymous && (
-  <button onClick={() => setShowAuth(true)}>
-    正式アカウントに登録
-  </button>
-)}
-{user && <p>ログイン中：{user.email}</p>}
-{user && <button onClick={handleSignOut}>ログアウト</button>}
-{showAuth && (!user || user.is_anonymous) && (
-  <div>
-    <h2>ログイン / 新規登録</h2>
-
-    <input
-      type="email"
-      placeholder="メールアドレス"
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
-    />
-
-    <input
-      type="password"
-      placeholder="パスワード"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-    />
-    <button onClick={handleSignUp}>
-  新規登録
-</button>
-<button onClick={handleSignIn}>
-  ログイン
-</button>
-<button onClick={handleGuestSignIn}>
-  ゲストとして始める
-</button>
-  </div>
-)}
-      <header className="shelf-header">
-        <h1 className="shelf-title">myshelf</h1>
-        <p className="shelf-lead">好きな作品を、自分だけの棚に。</p>
-
-        <button
-          className={`btn-primary${showForm ? " is-close" : ""}`}
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingId(null);
-            setTitle("");
-setCreator("");
-setType("");
-            setError("");
-          }}
-        >
-          {showForm ? "閉じる" : "＋ 作品を追加"}
-        </button>
+    <div className="my-shelf">
+      <header className="my-shelf-topbar">
+        <div className="my-shelf-topbar-inner">
+          <p className="my-shelf-logo">myshelf</p>
+          <div className="my-shelf-account">
+            {!user && (
+              <button
+                type="button"
+                className="my-shelf-text-btn"
+                onClick={() => setShowAuth(true)}
+              >
+                ログイン / 新規登録
+              </button>
+            )}
+            {user?.is_anonymous && (
+              <button
+                type="button"
+                className="my-shelf-text-btn"
+                onClick={() => setShowAuth(true)}
+              >
+                正式アカウントに登録
+              </button>
+            )}
+            {user && !user.is_anonymous && (
+              <span className="my-shelf-user">{user.email}</span>
+            )}
+            {user && (
+              <button
+                type="button"
+                className="my-shelf-text-btn"
+                onClick={handleSignOut}
+              >
+                ログアウト
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <div className="shelf-form">
-  <h2 className="shelf-form-title">本を検索（テスト）</h2>
-
-  <input
-    type="text"
-    placeholder="本のタイトルを入力"
-    value={bookSearchQuery}
-    onChange={(e) => setBookSearchQuery(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void handleBookSearch();
-      }
-    }}
-  />
-
-  <button
-    type="button"
-    onClick={handleBookSearch}
-    disabled={bookSearchLoading}
-  >
-    {bookSearchLoading ? "検索中..." : "本を検索"}
-  </button>
-
-  {bookSearchLoading && <p>検索中...</p>}
-
-  {!bookSearchLoading && bookSearchError && (
-    <p className="shelf-error">{bookSearchError}</p>
-  )}
-
-  {!bookSearchLoading &&
-    !bookSearchError &&
-    bookHasSearched &&
-    bookSearchResults.length === 0 && (
-      <p>該当する作品が見つかりませんでした</p>
-    )}
-
-  {!bookSearchLoading &&
-    !bookSearchError &&
-    bookSearchResults.map((book, index) => (
-  <div key={`${book.id}-${index}`}>
-    {book.imageUrl && (
-      <img
-        src={book.imageUrl}
-        alt={book.title}
-        style={{
-          width: "80px",
-          height: "110px",
-          objectFit: "cover",
-        }}
-      />
-    )}
-
-    <div>
-      {book.title} — {book.creator || "著者不明"}
-    </div>
-    <button
-  type="button"
-  onClick={() => handleSelectBook(book)}
->
-  この本を選ぶ
-</button>
-  </div>
-))}
-</div>
-
-      <div className="shelf-form">
-  <h2 className="shelf-form-title">映画を検索（テスト）</h2>
-
-  <input
-    type="text"
-    placeholder="映画のタイトルを入力"
-    value={movieSearchQuery}
-    onChange={(e) => setMovieSearchQuery(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void handleMovieSearch();
-      }
-    }}
-  />
-
-  <button
-    type="button"
-    onClick={handleMovieSearch}
-    disabled={movieSearchLoading}
-  >
-    {movieSearchLoading ? "検索中..." : "映画を検索"}
-  </button>
-
-  {movieSearchLoading && <p>検索中...</p>}
-
-  {!movieSearchLoading && movieSearchError && (
-    <p className="shelf-error">{movieSearchError}</p>
-  )}
-
-  {!movieSearchLoading &&
-    !movieSearchError &&
-    movieHasSearched &&
-    movieSearchResults.length === 0 && (
-      <p>該当する作品が見つかりませんでした</p>
-    )}
-
-  {!movieSearchLoading &&
-    !movieSearchError &&
-    movieSearchResults.map((movie, index) => (
-  <div key={`${movie.id}-${index}`}>
-    {movie.imageUrl && (
-      <img
-        src={movie.imageUrl}
-        alt={movie.title}
-        style={{
-          width: "80px",
-          height: "110px",
-          objectFit: "cover",
-        }}
-      />
-    )}
-
-    <div>
-      {movie.title} — {movie.creator || "監督不明"}
-    </div>
-    <button
-  type="button"
-  onClick={() => handleSelectMovie(movie)}
->
-  この映画を選ぶ
-</button>
-  </div>
-))}
-</div>
-
-      <div className="shelf-form">
-  <h2 className="shelf-form-title">音楽を検索（テスト）</h2>
-
-  <input
-    type="text"
-    placeholder="アルバム名・アーティスト名を入力"
-    value={musicSearchQuery}
-    onChange={(e) => setMusicSearchQuery(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void handleMusicSearch();
-      }
-    }}
-  />
-
-  <button
-    type="button"
-    onClick={handleMusicSearch}
-    disabled={musicSearchLoading}
-  >
-    {musicSearchLoading ? "検索中..." : "音楽を検索"}
-  </button>
-
-  {musicSearchLoading && <p>検索中...</p>}
-
-  {!musicSearchLoading && musicSearchError && (
-    <p className="shelf-error">{musicSearchError}</p>
-  )}
-
-  {!musicSearchLoading &&
-    !musicSearchError &&
-    musicHasSearched &&
-    musicSearchResults.length === 0 && (
-      <p>該当する作品が見つかりませんでした</p>
-    )}
-
-  {!musicSearchLoading &&
-    !musicSearchError &&
-    musicSearchResults.map((music, index) => (
-  <div key={`${music.id}-${index}`}>
-    {music.imageUrl ? (
-      <img
-        src={music.imageUrl}
-        alt={music.title}
-        style={{
-          width: "80px",
-          height: "110px",
-          objectFit: "cover",
-        }}
-      />
-    ) : (
-      <div
-        style={{
-          width: "80px",
-          height: "110px",
-          background: "#f5f5f4",
-          border: "1px solid #e7e5e4",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "0.7rem",
-          color: "#a8a29e",
-        }}
-      >
-        NO IMAGE
-      </div>
-    )}
-
-    <div>
-      {music.title} — {music.creator || "アーティスト不明"}
-    </div>
-    <button
-  type="button"
-  onClick={() => handleSelectMusic(music)}
->
-  この音楽を選ぶ
-</button>
-  </div>
-))}
-</div>
-
-      {showForm && (
-        <div className="shelf-form">
-          <h2 className="shelf-form-title">
-  {editingId ? "作品を編集" : "作品を追加"}
-</h2>
-          {error && <p className="shelf-error">{error}</p>}
+      {showAuth && (!user || user.is_anonymous) && (
+        <div className="my-shelf-auth shelf-form">
+          <h2 className="shelf-form-title">ログイン / 新規登録</h2>
           <label className="shelf-field">
-            タイトル
+            メールアドレス
             <input
-              type="text"
-              placeholder="作品名を入力"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-
-          <label className="shelf-field">
-            作者・監督・アーティスト
-            <input
-              type="text"
-              placeholder="名前を入力"
-              value={creator}
-              onChange={(e) => setCreator(e.target.value)}
+              type="email"
+              placeholder="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </label>
           <label className="shelf-field">
-  画像URL
-  <input
-    type="text"
-    placeholder="画像URLを入力"
-    value={imageUrl}
-    onChange={(e) => setImageUrl(e.target.value)}
-  />
-</label>
-          <label className="shelf-field">
-            種類
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as MediaType)}
-            >
-              <option value="">カテゴリーを選択</option>
-              <option value="book">本</option>
-              <option value="movie">映画</option>
-              <option value="music">音楽</option>
-              <option value="anime">アニメ</option>
-              <option value="drama">ドラマ</option>
-            </select>
+            パスワード
+            <input
+              type="password"
+              placeholder="パスワード"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </label>
-
-          <button className="shelf-form-submit" onClick={handleAdd}>
-          {editingId ? "変更を保存" : "追加する"}
-          </button>
+          <div className="my-shelf-auth-actions">
+            <button type="button" className="btn-primary" onClick={handleSignUp}>
+              新規登録
+            </button>
+            <button type="button" className="btn-primary is-close" onClick={handleSignIn}>
+              ログイン
+            </button>
+            <button type="button" className="my-shelf-text-btn" onClick={handleGuestSignIn}>
+              ゲストとして始める
+            </button>
+          </div>
         </div>
       )}
 
-<h2 className="shelf-section-title">
-  作品一覧（{items.length}件）
-</h2>
-      <input
-      className="shelf-search"
-  type="text"
-  placeholder="作品名・作者名で検索"
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-/>
-<select
-  className="shelf-search"
-  value={categoryFilter}
-  onChange={(e) => setCategoryFilter(e.target.value)}
->
-  <option value="all">すべてのカテゴリ</option>
-  <option value="book">本</option>
-  <option value="movie">映画</option>
-  <option value="music">音楽</option>
-  <option value="anime">アニメ</option>
-  <option value="drama">ドラマ</option>
-</select>
-<select
-  className="shelf-search"
-  value={sortOrder}
-  onChange={(e) => setSortOrder(e.target.value)}
->
-  <option value="newest">新しい順</option>
-  <option value="oldest">古い順</option>
-  <option value="title">作品名順</option>
-</select>
+      <main className="my-shelf-main">
+        <section className="my-shelf-intro">
+          <h1 className="my-shelf-heading">自分の棚</h1>
+          <p className="my-shelf-desc">
+            好きな作品を、ジャンルを超えてひとつの棚に。
+          </p>
+          <button
+            type="button"
+            className={`btn-primary${showForm ? " is-close" : ""}`}
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setTitle("");
+              setCreator("");
+              setType("");
+              setImageUrl("");
+              setError("");
+            }}
+          >
+            {showForm ? "閉じる" : "＋ 作品を追加"}
+          </button>
+        </section>
 
-<button
-  type="button"
-  className="shelf-reset-button"
-  onClick={handleResetFilters}
->
-  検索・絞り込みをリセット
-</button>
-
-{items
-  .filter((item) =>
-    categoryFilter === "all" || item.type === categoryFilter
-  )
-  .filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
-  ).length === 0 && (
-    <p>該当する作品がありません。</p>
-  )}
-
-      <div className="shelf-list">
-      {[...items]
-  .sort((a, b) => {
-    if (sortOrder === "title") {
-      return a.title.localeCompare(b.title, "ja");
-    }
-  
-    const dateA = new Date(a.createdAt ?? 0).getTime();
-    const dateB = new Date(b.createdAt ?? 0).getTime();
-  
-    if (sortOrder === "newest") {
-      return dateB - dateA;
-    }
-  
-    if (sortOrder === "oldest") {
-      return dateA - dateB;
-    }
-  
-    return 0;
-  })
-  .filter((item) =>
-    categoryFilter === "all" || item.type === categoryFilter
-  )
-  .filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  (item.creator ?? "").toLowerCase().includes(searchQuery.toLowerCase())
-  )
-  .map((item) => (
-          <div key={item.id} className={`shelf-card shelf-card--${item.type}`}>
-            <div className="shelf-card-image">
-              {item.imageUrl ? (
-                <img
-                src={item.imageUrl}
-                alt={item.title}
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.parentElement?.classList.add("image-error");
+        {showForm && (
+          <section className="my-shelf-compose">
+            <div className="shelf-form">
+              <h2 className="shelf-form-title">本を検索</h2>
+              <input
+                type="text"
+                placeholder="本のタイトルを入力"
+                value={bookSearchQuery}
+                onChange={(e) => setBookSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleBookSearch();
+                  }
                 }}
               />
-              ) : (
-                "NO IMAGE"
+              <button
+                type="button"
+                onClick={handleBookSearch}
+                disabled={bookSearchLoading}
+              >
+                {bookSearchLoading ? "検索中..." : "本を検索"}
+              </button>
+              {bookSearchLoading && <p>検索中...</p>}
+              {!bookSearchLoading && bookSearchError && (
+                <p className="shelf-error">{bookSearchError}</p>
               )}
+              {!bookSearchLoading &&
+                !bookSearchError &&
+                bookHasSearched &&
+                bookSearchResults.length === 0 && (
+                  <p>該当する作品が見つかりませんでした</p>
+                )}
+              {!bookSearchLoading &&
+                !bookSearchError &&
+                bookSearchResults.map((book, index) => (
+                  <div key={`${book.id}-${index}`} className="my-shelf-search-hit">
+                    {book.imageUrl && (
+                      <img src={book.imageUrl} alt={book.title} />
+                    )}
+                    <div>
+                      {book.title} — {book.creator || "著者不明"}
+                    </div>
+                    <button type="button" onClick={() => handleSelectBook(book)}>
+                      この本を選ぶ
+                    </button>
+                  </div>
+                ))}
             </div>
-            <div className="shelf-card-content">
-            <h3 className="shelf-card-title">{item.title}</h3>
-            <p className="shelf-card-creator">{item.creator}</p>
-            <p className="shelf-card-type">
-  {{
-    book: "本",
-    movie: "映画",
-    music: "音楽",
-    anime: "アニメ",
-    drama: "ドラマ",
-  }[item.type]}
-</p>
-            <div className="shelf-card-actions">
-              <button className="btn-edit" onClick={() => handleEdit(item.id)}>
-                編集
+
+            <div className="shelf-form">
+              <h2 className="shelf-form-title">映画を検索</h2>
+              <input
+                type="text"
+                placeholder="映画のタイトルを入力"
+                value={movieSearchQuery}
+                onChange={(e) => setMovieSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleMovieSearch();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleMovieSearch}
+                disabled={movieSearchLoading}
+              >
+                {movieSearchLoading ? "検索中..." : "映画を検索"}
               </button>
-              <button className="btn-delete" onClick={() => handleDelete(item.id)}>
-                削除
+              {movieSearchLoading && <p>検索中...</p>}
+              {!movieSearchLoading && movieSearchError && (
+                <p className="shelf-error">{movieSearchError}</p>
+              )}
+              {!movieSearchLoading &&
+                !movieSearchError &&
+                movieHasSearched &&
+                movieSearchResults.length === 0 && (
+                  <p>該当する作品が見つかりませんでした</p>
+                )}
+              {!movieSearchLoading &&
+                !movieSearchError &&
+                movieSearchResults.map((movie, index) => (
+                  <div key={`${movie.id}-${index}`} className="my-shelf-search-hit">
+                    {movie.imageUrl && (
+                      <img src={movie.imageUrl} alt={movie.title} />
+                    )}
+                    <div>
+                      {movie.title} — {movie.creator || "監督不明"}
+                    </div>
+                    <button type="button" onClick={() => handleSelectMovie(movie)}>
+                      この映画を選ぶ
+                    </button>
+                  </div>
+                ))}
+            </div>
+
+            <div className="shelf-form">
+              <h2 className="shelf-form-title">音楽を検索</h2>
+              <input
+                type="text"
+                placeholder="アルバム名・アーティスト名を入力"
+                value={musicSearchQuery}
+                onChange={(e) => setMusicSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleMusicSearch();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleMusicSearch}
+                disabled={musicSearchLoading}
+              >
+                {musicSearchLoading ? "検索中..." : "音楽を検索"}
+              </button>
+              {musicSearchLoading && <p>検索中...</p>}
+              {!musicSearchLoading && musicSearchError && (
+                <p className="shelf-error">{musicSearchError}</p>
+              )}
+              {!musicSearchLoading &&
+                !musicSearchError &&
+                musicHasSearched &&
+                musicSearchResults.length === 0 && (
+                  <p>該当する作品が見つかりませんでした</p>
+                )}
+              {!musicSearchLoading &&
+                !musicSearchError &&
+                musicSearchResults.map((music, index) => (
+                  <div key={`${music.id}-${index}`} className="my-shelf-search-hit">
+                    {music.imageUrl ? (
+                      <img src={music.imageUrl} alt={music.title} />
+                    ) : (
+                      <div className="my-shelf-search-hit-placeholder">NO IMAGE</div>
+                    )}
+                    <div>
+                      {music.title} — {music.creator || "アーティスト不明"}
+                    </div>
+                    <button type="button" onClick={() => handleSelectMusic(music)}>
+                      この音楽を選ぶ
+                    </button>
+                  </div>
+                ))}
+            </div>
+
+            <div className="shelf-form">
+              <h2 className="shelf-form-title">
+                {editingId ? "作品を編集" : "作品を追加"}
+              </h2>
+              {error && <p className="shelf-error">{error}</p>}
+              <label className="shelf-field">
+                タイトル
+                <input
+                  type="text"
+                  placeholder="作品名を入力"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+              <label className="shelf-field">
+                作者・監督・アーティスト（任意）
+                <input
+                  type="text"
+                  placeholder="未入力でも登録できます"
+                  value={creator}
+                  onChange={(e) => setCreator(e.target.value)}
+                />
+              </label>
+              <label className="shelf-field">
+                画像URL（任意）
+                <input
+                  type="text"
+                  placeholder="未入力でも登録できます"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                />
+              </label>
+              <label className="shelf-field">
+                種類
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as MediaType)}
+                >
+                  <option value="">カテゴリーを選択</option>
+                  <option value="book">本</option>
+                  <option value="manga">漫画</option>
+                  <option value="movie">映画</option>
+                  <option value="music">音楽</option>
+                  <option value="game">ゲーム</option>
+                  <option value="anime">アニメ</option>
+                  <option value="drama">ドラマ</option>
+                </select>
+              </label>
+              <button className="shelf-form-submit" onClick={handleAdd}>
+                {editingId ? "変更を保存" : "追加する"}
               </button>
             </div>
-            </div>
+          </section>
+        )}
+
+        <section className="my-shelf-toolbar">
+          <input
+            className="my-shelf-control"
+            type="text"
+            placeholder="作品名・作者名で検索"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select
+            className="my-shelf-control"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">すべてのカテゴリ</option>
+            <option value="book">本</option>
+            <option value="manga">漫画</option>
+            <option value="movie">映画</option>
+            <option value="music">音楽</option>
+            <option value="game">ゲーム</option>
+            <option value="anime">アニメ</option>
+            <option value="drama">ドラマ</option>
+          </select>
+          <select
+            className="my-shelf-control"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option value="newest">新しい順</option>
+            <option value="oldest">古い順</option>
+            <option value="title">作品名順</option>
+          </select>
+          <button
+            type="button"
+            className="my-shelf-reset"
+            onClick={handleResetFilters}
+          >
+            リセット
+          </button>
+        </section>
+
+        <section className="my-shelf-collection">
+          <p className="my-shelf-count">{visibleItems.length}件の作品</p>
+
+          {visibleItems.length === 0 && (
+            <p className="my-shelf-empty">該当する作品がありません。</p>
+          )}
+
+          <div className="my-shelf-grid">
+            {visibleItems.map((item) => (
+              <article
+                key={item.id}
+                className={`my-shelf-item my-shelf-item--${item.type}`}
+              >
+                <div className="my-shelf-cover">
+                  <div className="my-shelf-cover-fallback" aria-hidden="true">
+                    <span>{typeLabel[item.type] ?? "作品"}</span>
+                  </div>
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="my-shelf-meta">
+                  <h2 className="my-shelf-item-title">{item.title}</h2>
+                  <p className="my-shelf-item-creator">{item.creator || "作者不明"}</p>
+                  <p className="my-shelf-item-type">
+                    {typeLabel[item.type] ?? item.type}
+                  </p>
+                  <div className="my-shelf-item-actions">
+                    <button type="button" onClick={() => handleEdit(item.id)}>
+                      編集
+                    </button>
+                    <button type="button" onClick={() => handleDelete(item.id)}>
+                      削除
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
-        ))}
-      </div>
-    </main>
+        </section>
+      </main>
+    </div>
   );
- }
+}
