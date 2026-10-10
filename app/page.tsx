@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mediaItems } from "../data/media";
 import type { MediaType } from "../types/media";
 import { createClient } from "../utils/supabase/client";
@@ -16,16 +16,23 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [bookSearchQuery, setBookSearchQuery] = useState("");
-const [bookSearchResults, setBookSearchResults] = useState<any[]>([]);
-const [bookSearchLoading, setBookSearchLoading] = useState(false);
+  const [bookSearchResults, setBookSearchResults] = useState<any[]>([]);
+  const [bookSearchLoading, setBookSearchLoading] = useState(false);
+  const [bookSearchError, setBookSearchError] = useState("");
+  const [bookHasSearched, setBookHasSearched] = useState(false);
+  const bookSearchRequestIdRef = useRef(0);
   const [movieSearchQuery, setMovieSearchQuery] = useState("");
   const [movieSearchResults, setMovieSearchResults] = useState<any[]>([]);
   const [movieSearchLoading, setMovieSearchLoading] = useState(false);
+  const [movieSearchError, setMovieSearchError] = useState("");
+  const [movieHasSearched, setMovieHasSearched] = useState(false);
+  const movieSearchRequestIdRef = useRef(0);
   const [musicSearchQuery, setMusicSearchQuery] = useState("");
   const [musicSearchResults, setMusicSearchResults] = useState<any[]>([]);
   const [musicSearchLoading, setMusicSearchLoading] = useState(false);
   const [musicSearchError, setMusicSearchError] = useState("");
   const [musicHasSearched, setMusicHasSearched] = useState(false);
+  const musicSearchRequestIdRef = useRef(0);
 
 const handleSelectBook = (book: any) => {
   setTitle(book.title ?? "");
@@ -38,31 +45,45 @@ const handleSelectBook = (book: any) => {
   setError("");
   setShowForm(true);
   setBookSearchResults([]);
+  setBookSearchError("");
+  setBookHasSearched(false);
 };
 
 const handleBookSearch = async () => {
   if (!bookSearchQuery.trim()) return;
 
+  const requestId = ++bookSearchRequestIdRef.current;
   setBookSearchLoading(true);
+  setBookSearchResults([]);
+  setBookSearchError("");
+  setBookHasSearched(false);
 
   try {
     const response = await fetch(
       `/api/books?q=${encodeURIComponent(bookSearchQuery)}`
     );
 
+    const data = await response.json().catch(() => ({}));
+
+    if (requestId !== bookSearchRequestIdRef.current) return;
+
     if (!response.ok) {
       throw new Error("検索に失敗しました");
     }
 
-    const data = await response.json();
-
     setBookSearchResults(data.results ?? []);
+    setBookHasSearched(true);
     console.log("本の検索結果:", data.results);
   } catch (error) {
+    if (requestId !== bookSearchRequestIdRef.current) return;
     console.error("本の検索エラー:", error);
-    alert("本の検索に失敗しました");
+    setBookSearchResults([]);
+    setBookSearchError("検索に失敗しました");
+    setBookHasSearched(true);
   } finally {
-    setBookSearchLoading(false);
+    if (requestId === bookSearchRequestIdRef.current) {
+      setBookSearchLoading(false);
+    }
   }
 };
 
@@ -76,31 +97,45 @@ const handleSelectMovie = (movie: any) => {
   setError("");
   setShowForm(true);
   setMovieSearchResults([]);
+  setMovieSearchError("");
+  setMovieHasSearched(false);
 };
 
 const handleMovieSearch = async () => {
   if (!movieSearchQuery.trim()) return;
 
+  const requestId = ++movieSearchRequestIdRef.current;
   setMovieSearchLoading(true);
+  setMovieSearchResults([]);
+  setMovieSearchError("");
+  setMovieHasSearched(false);
 
   try {
     const response = await fetch(
       `/api/movies?q=${encodeURIComponent(movieSearchQuery)}`
     );
 
+    const data = await response.json().catch(() => ({}));
+
+    if (requestId !== movieSearchRequestIdRef.current) return;
+
     if (!response.ok) {
       throw new Error("検索に失敗しました");
     }
 
-    const data = await response.json();
-
     setMovieSearchResults(data.results ?? []);
+    setMovieHasSearched(true);
     console.log("映画の検索結果:", data.results);
   } catch (error) {
+    if (requestId !== movieSearchRequestIdRef.current) return;
     console.error("映画の検索エラー:", error);
-    alert("映画の検索に失敗しました");
+    setMovieSearchResults([]);
+    setMovieSearchError("検索に失敗しました");
+    setMovieHasSearched(true);
   } finally {
-    setMovieSearchLoading(false);
+    if (requestId === movieSearchRequestIdRef.current) {
+      setMovieSearchLoading(false);
+    }
   }
 };
 
@@ -121,7 +156,9 @@ const handleSelectMusic = (music: any) => {
 const handleMusicSearch = async () => {
   if (!musicSearchQuery.trim()) return;
 
+  const requestId = ++musicSearchRequestIdRef.current;
   setMusicSearchLoading(true);
+  setMusicSearchResults([]);
   setMusicSearchError("");
   setMusicHasSearched(false);
 
@@ -130,24 +167,27 @@ const handleMusicSearch = async () => {
       `/api/music?q=${encodeURIComponent(musicSearchQuery)}`
     );
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
+
+    if (requestId !== musicSearchRequestIdRef.current) return;
 
     if (!response.ok) {
-      throw new Error(data.error || "検索に失敗しました");
+      throw new Error("検索に失敗しました");
     }
 
     setMusicSearchResults(data.results ?? []);
     setMusicHasSearched(true);
     console.log("音楽の検索結果:", data.results);
   } catch (error) {
+    if (requestId !== musicSearchRequestIdRef.current) return;
     console.error("音楽の検索エラー:", error);
     setMusicSearchResults([]);
-    setMusicSearchError(
-      error instanceof Error ? error.message : "音楽の検索に失敗しました"
-    );
+    setMusicSearchError("検索に失敗しました");
     setMusicHasSearched(true);
   } finally {
-    setMusicSearchLoading(false);
+    if (requestId === musicSearchRequestIdRef.current) {
+      setMusicSearchLoading(false);
+    }
   }
 };
   const [creator, setCreator] = useState("");
@@ -468,6 +508,12 @@ setType("");
     placeholder="本のタイトルを入力"
     value={bookSearchQuery}
     onChange={(e) => setBookSearchQuery(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void handleBookSearch();
+      }
+    }}
   />
 
   <button
@@ -478,7 +524,22 @@ setType("");
     {bookSearchLoading ? "検索中..." : "本を検索"}
   </button>
 
-  {bookSearchResults.map((book, index) => (
+  {bookSearchLoading && <p>検索中...</p>}
+
+  {!bookSearchLoading && bookSearchError && (
+    <p className="shelf-error">{bookSearchError}</p>
+  )}
+
+  {!bookSearchLoading &&
+    !bookSearchError &&
+    bookHasSearched &&
+    bookSearchResults.length === 0 && (
+      <p>該当する作品が見つかりませんでした</p>
+    )}
+
+  {!bookSearchLoading &&
+    !bookSearchError &&
+    bookSearchResults.map((book, index) => (
   <div key={`${book.id}-${index}`}>
     {book.imageUrl && (
       <img
@@ -513,6 +574,12 @@ setType("");
     placeholder="映画のタイトルを入力"
     value={movieSearchQuery}
     onChange={(e) => setMovieSearchQuery(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void handleMovieSearch();
+      }
+    }}
   />
 
   <button
@@ -523,7 +590,22 @@ setType("");
     {movieSearchLoading ? "検索中..." : "映画を検索"}
   </button>
 
-  {movieSearchResults.map((movie, index) => (
+  {movieSearchLoading && <p>検索中...</p>}
+
+  {!movieSearchLoading && movieSearchError && (
+    <p className="shelf-error">{movieSearchError}</p>
+  )}
+
+  {!movieSearchLoading &&
+    !movieSearchError &&
+    movieHasSearched &&
+    movieSearchResults.length === 0 && (
+      <p>該当する作品が見つかりませんでした</p>
+    )}
+
+  {!movieSearchLoading &&
+    !movieSearchError &&
+    movieSearchResults.map((movie, index) => (
   <div key={`${movie.id}-${index}`}>
     {movie.imageUrl && (
       <img
@@ -558,6 +640,12 @@ setType("");
     placeholder="アルバム名・アーティスト名を入力"
     value={musicSearchQuery}
     onChange={(e) => setMusicSearchQuery(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void handleMusicSearch();
+      }
+    }}
   />
 
   <button
@@ -578,10 +666,11 @@ setType("");
     !musicSearchError &&
     musicHasSearched &&
     musicSearchResults.length === 0 && (
-      <p>検索結果がありません</p>
+      <p>該当する作品が見つかりませんでした</p>
     )}
 
   {!musicSearchLoading &&
+    !musicSearchError &&
     musicSearchResults.map((music, index) => (
   <div key={`${music.id}-${index}`}>
     {music.imageUrl ? (
