@@ -1250,10 +1250,125 @@ body {
   margin-bottom: 2rem;
 }
 
+.my-shelf-compose-heading {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.my-shelf-compose-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.my-shelf-api-search {
+  gap: 0.75rem;
+}
+
+.my-shelf-api-search-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+}
+
+.my-shelf-api-search-genre select,
+.my-shelf-api-search-controls > input[type="text"] {
+  width: 100%;
+  margin-top: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fafaf9;
+  color: var(--foreground);
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+
+.my-shelf-api-search-genre select:focus,
+.my-shelf-api-search-controls > input[type="text"]:focus {
+  outline: none;
+  border-color: #d6d3d1;
+  background: #fff;
+}
+
+.my-shelf-api-search-submit {
+  margin-top: 0 !important;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.my-shelf-api-search-submit:hover:not(:disabled) {
+  background: #fafaf9;
+}
+
+.my-shelf-api-search-submit:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.my-shelf-api-search-status {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.my-shelf-api-search-success {
+  margin: 0.25rem 0 0;
+  color: #3f6212;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.my-shelf-search-hit button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.my-shelf-manual-toggle {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px dashed #d6d3d1;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.my-shelf-manual-toggle:hover {
+  background: #fafaf9;
+  border-color: #a8a29e;
+}
+
 .my-shelf-compose .shelf-form input[type="text"],
 .my-shelf-compose .shelf-form input:not([type]),
 .my-shelf-compose .shelf-form button {
   margin-top: 0.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .my-shelf-search-hit {
@@ -1471,6 +1586,11 @@ body {
 @media (min-width: 640px) {
   .my-shelf-main {
     padding: 2.75rem 2rem 5rem;
+  }
+
+  .my-shelf-api-search-controls {
+    grid-template-columns: minmax(7.5rem, 8.5rem) minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   .my-shelf-toolbar {
