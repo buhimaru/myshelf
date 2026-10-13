@@ -1,16 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { mediaItems } from "../data/media";
 import type { MediaType } from "../types/media";
 import { createClient } from "../utils/supabase/client";
+import ShelfConnections from "./ShelfConnections";
+import ShelfDisplayNameSettings from "./ShelfDisplayNameSettings";
+import ShelfFollowRequests from "./ShelfFollowRequests";
+import ShelfVisibilitySettings from "./ShelfVisibilitySettings";
+import { resolvePublicDisplayName } from "../utils/shelfDisplay";
 
 type ApiSearchGenre = "book" | "movie" | "music";
 
-export default function ShelfApp() {
-  const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
-  console.log("current user:", user);
+type ShelfAppProps = {
+  /** page.tsx で認証確定済みのユーザー（匿名含む） */
+  initialUser: User;
+};
+
+export default function ShelfApp({ initialUser }: ShelfAppProps) {
+  const [supabase] = useState(() => createClient());
+  const [user, setUser] = useState<User | null>(initialUser);
+  // 親で確定済みのため、初期表示からアカウントUIを出してよい
+  const [authReady, setAuthReady] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,6 +47,11 @@ export default function ShelfApp() {
   const [apiAddMessage, setApiAddMessage] = useState("");
   const [apiAddError, setApiAddError] = useState("");
   const apiSearchRequestIdRef = useRef(0);
+
+  // undefined = プロフィール未取得（「名前未設定」を出さない）
+  const [myDisplayName, setMyDisplayName] = useState<
+    string | null | undefined
+  >(undefined);
 
   const [searchQuery, setSearchQuery] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -217,21 +234,35 @@ export default function ShelfApp() {
   useEffect(() => {
     localStorage.setItem("myshelf-search-query", searchQuery);
   }, [searchQuery]);
+  // 親から渡された確定済みユーザーを反映（ページ再マウント時のチラつき防止）
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
+    setUser(initialUser);
+    setAuthReady(true);
+  }, [initialUser.id, initialUser.is_anonymous, initialUser.email]);
+
+  // 以降のログイン・アップグレード・ログアウトのみ購読（初期 getUser は親に任せる）
+  useEffect(() => {
+    let cancelled = false;
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
+      setAuthReady(true);
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
+
+  // ユーザー切替・再ログイン時は取得完了まで「名前未設定」を出さない
+  useEffect(() => {
+    setMyDisplayName(undefined);
+  }, [user?.id]);
+
   useEffect(() => {
     const loadItems = async () => {
       console.log("loadItems実行", user);
@@ -490,7 +521,7 @@ export default function ShelfApp() {
         <div className="my-shelf-topbar-inner">
           <p className="my-shelf-logo">myshelf</p>
           <div className="my-shelf-account">
-            {!user && (
+            {authReady && !user && (
               <button
                 type="button"
                 className="my-shelf-text-btn"
@@ -499,7 +530,7 @@ export default function ShelfApp() {
                 ログイン / 新規登録
               </button>
             )}
-            {user?.is_anonymous && (
+            {authReady && user?.is_anonymous && (
               <button
                 type="button"
                 className="my-shelf-text-btn"
@@ -508,10 +539,10 @@ export default function ShelfApp() {
                 正式アカウントに登録
               </button>
             )}
-            {user && !user.is_anonymous && (
+            {authReady && user && !user.is_anonymous && (
               <span className="my-shelf-user">{user.email}</span>
             )}
-            {user && (
+            {authReady && user && (
               <button
                 type="button"
                 className="my-shelf-text-btn"
@@ -569,7 +600,42 @@ export default function ShelfApp() {
 
       <main className="my-shelf-main">
         <section className="my-shelf-intro">
-          <h1 className="my-shelf-heading">自分の棚</h1>
+          <div className="my-shelf-intro-heading-row">
+            <h1 className="my-shelf-heading">自分の棚</h1>
+            {user && (
+              <ShelfDisplayNameSettings
+                user={user}
+                onDisplayNameChanged={setMyDisplayName}
+              />
+            )}
+            {user && (
+              <ShelfVisibilitySettings
+                user={user}
+                onRequestRegister={() => setShowAuth(true)}
+              />
+            )}
+            {user && !user.is_anonymous && (
+              <ShelfConnections user={user} />
+            )}
+            {user && <ShelfFollowRequests user={user} />}
+          </div>
+          {user && (
+            <p className="my-shelf-display-name-line" aria-live="polite">
+              表示名:{" "}
+              {myDisplayName === undefined ? (
+                <span
+                  className="my-shelf-display-name-placeholder"
+                  aria-hidden="true"
+                >
+                  …
+                </span>
+              ) : (
+                <span className="my-shelf-display-name-value">
+                  {resolvePublicDisplayName({ displayName: myDisplayName })}
+                </span>
+              )}
+            </p>
+          )}
           <p className="my-shelf-desc">
             好きな作品を、ジャンルを超えてひとつの棚に。
           </p>

@@ -1,0 +1,21 @@
+-- myshelf Stage4 notes: 表示名（display_name）
+-- ------------------------------------------------------------
+-- このファイルは本番適用用のスキーマ変更ではありません。
+-- アプリは既存の public.profiles.display_name を本人 UPDATE します。
+-- （公開設定の update と同じ RLS 経路を想定）
+--
+-- 本リポジトリからは自動実行しないこと。本番でも実行不要な想定です。
+--
+-- 確認用（手動・任意）:
+--   1. profiles に display_name カラムがあること
+--   2. authenticated が自分の profiles 行を UPDATE できること
+--      （is_public の更新が既に動いていれば display_name も同様）
+--   3. 他人の profiles 行を UPDATE できないこと
+--
+-- 既存 username / 作品 / フォローは変更・削除しない。
+-- 既存 display_name の一括更新もしない。
+--
+-- アプリ側の表示ルール（SQL不要）:
+--   - 公開表示は display_name のみ
+--   - 空 / メール形式 / display_name = username（登録時ミラー）は「名前未設定」
+-- ------------------------------------------------------------

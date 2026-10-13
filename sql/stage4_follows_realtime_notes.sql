@@ -1,0 +1,22 @@
+-- myshelf: follows テーブルの Realtime 有効化メモ
+-- ------------------------------------------------------------
+-- アプリは public.follows の postgres_changes を購読して
+-- 他ウィンドウ・他アカウントのフォロー承認/拒否/解除を同期する。
+--
+-- このファイルは自動実行しない。必要な場合のみ SQL Editor で手動実行。
+-- RLS ポリシーやフォロー権限ロジック自体は変更しない。
+--
+-- 1) publication 確認:
+--   SELECT * FROM pg_publication_tables
+--   WHERE pubname = 'supabase_realtime' AND tablename = 'follows';
+--
+-- 2) 未登録なら:
+--   ALTER PUBLICATION supabase_realtime ADD TABLE public.follows;
+--
+-- 3) UPDATE イベントを RLS 付きで安定配信するため推奨:
+--   ALTER TABLE public.follows REPLICA IDENTITY FULL;
+--
+-- Realtime が無効・未達でも、アプリは次で同期する:
+--   - タブ復帰 / window focus 時の再取得
+--   - 表示中のみの軽量ポーリング（待ち状態・一覧表示中）
+-- ------------------------------------------------------------

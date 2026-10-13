@@ -2,14 +2,16 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import LandingPage from "../components/LandingPage";
 import ShelfApp from "../components/ShelfApp";
+import { subscribeAuthUser } from "../utils/supabase/authUser";
 import { createClient } from "../utils/supabase/client";
 
 function HomeContent() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const searchParams = useSearchParams();
-  const [user, setUser] = useState<unknown>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
   const authParam = searchParams.get("auth");
@@ -17,22 +19,11 @@ function HomeContent() {
     authParam === "login" || authParam === "start" ? authParam : null;
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    return subscribeAuthUser(supabase, (next) => {
+      setUser(next);
       setAuthReady(true);
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setAuthReady(true);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [supabase]);
 
   if (!authReady) {
     return (
@@ -43,7 +34,7 @@ function HomeContent() {
   }
 
   if (user) {
-    return <ShelfApp />;
+    return <ShelfApp initialUser={user} />;
   }
 
   return <LandingPage initialAuthMode={initialAuthMode} />;
