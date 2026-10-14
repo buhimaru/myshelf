@@ -1,0 +1,103 @@
+-- myshelf Stage5 dry-run / 手動検証メモ
+-- ------------------------------------------------------------
+-- 本番適用は sql/stage5_search_public_shelves.sql を使うこと。
+-- このファイルは自動実行しない。SQL Editor でブロックごとに実行する。
+--
+-- 前提: stage5_search_public_shelves.sql 適用済み。
+-- 各ロール検証は独立したトランザクション（BEGIN … RESET ROLE; COMMIT;）で行う。
+-- ------------------------------------------------------------
+
+-- ========== A. 権限カタログ（ロール切替なし） ==========
+-- SELECT
+--   has_function_privilege(
+--     'anon',
+--     'public.search_public_shelves_by_title(text, text, integer, integer)',
+--     'EXECUTE'
+--   ) AS anon_can_search,                 -- 期待: true
+--   has_function_privilege(
+--     'authenticated',
+--     'public.search_public_shelves_by_title(text, text, integer, integer)',
+--     'EXECUTE'
+--   ) AS auth_can_search,                 -- 期待: true
+--   has_function_privilege(
+--     'anon',
+--     'public.myshelf_resolve_public_display_name(text, text)',
+--     'EXECUTE'
+--   ) AS anon_can_helper,                 -- 期待: false
+--   has_function_privilege(
+--     'authenticated',
+--     'public.myshelf_resolve_public_display_name(text, text)',
+--     'EXECUTE'
+--   ) AS auth_can_helper;                 -- 期待: false
+
+-- ========== B. 表示名ヘルパー単体（postgres / オーナー権限で） ==========
+-- SELECT public.myshelf_resolve_public_display_name(NULL, NULL);
+--   → 名前未設定
+-- SELECT public.myshelf_resolve_public_display_name('user@example.com', 'user');
+--   → 名前未設定
+-- SELECT public.myshelf_resolve_public_display_name('legacy', 'legacy');
+--   → 名前未設定
+-- SELECT public.myshelf_resolve_public_display_name('表示名', 'legacy');
+--   → 表示名
+
+-- ========== C. anon ロールでの検索（独立トランザクション） ==========
+-- BEGIN;
+-- SET LOCAL ROLE anon;
+-- SELECT public.search_public_shelves_by_title('テスト', 'newest', 20, 0) AS result;
+-- -- 確認:
+-- --   - 例外なく jsonb
+-- --   - rows の各要素に username キーが無い
+-- --   - display_name に '@' が無い
+-- --   - 未設定は '名前未設定'
+-- -- 漏洩チェック（0行が期待）:
+-- SELECT r AS bad_row
+-- FROM jsonb_array_elements(
+--   public.search_public_shelves_by_title('テスト', 'newest', 50, 0) -> 'rows'
+-- ) AS t(r)
+-- WHERE (r ? 'username')
+--    OR position('@' IN COALESCE(r ->> 'display_name', '')) > 0;
+-- RESET ROLE;
+-- COMMIT;
+
+-- ========== D. authenticated ロールでの検索（独立トランザクション） ==========
+-- BEGIN;
+-- SET LOCAL ROLE authenticated;
+-- SELECT public.search_public_shelves_by_title('テスト', 'oldest', 20, 0) AS result;
+-- SELECT r AS bad_row
+-- FROM jsonb_array_elements(
+--   public.search_public_shelves_by_title('テスト', 'oldest', 50, 0) -> 'rows'
+-- ) AS t(r)
+-- WHERE (r ? 'username')
+--    OR position('@' IN COALESCE(r ->> 'display_name', '')) > 0;
+-- -- 期待: bad_row は 0 行
+-- RESET ROLE;
+-- COMMIT;
+
+-- ========== E. anon からヘルパーを呼べないこと（独立トランザクション） ==========
+-- BEGIN;
+-- SET LOCAL ROLE anon;
+-- SELECT public.myshelf_resolve_public_display_name('a', 'b');
+-- -- 期待: permission denied / insufficient_privilege
+-- RESET ROLE;
+-- ROLLBACK;  -- エラー後もセッションを汚さないため ROLLBACK でよい
+
+-- ========== F. authenticated からヘルパーを呼べないこと（独立トランザクション） ==========
+-- BEGIN;
+-- SET LOCAL ROLE authenticated;
+-- SELECT public.myshelf_resolve_public_display_name('a', 'b');
+-- -- 期待: permission denied / insufficient_privilege
+-- RESET ROLE;
+-- ROLLBACK;
+
+-- ========== G. 公開→非公開 ==========
+-- 公開ユーザーがヒットしたあと非公開にすると、同一クエリから消えること
+-- （フォロワーで検索しても出ないこと）
+
+-- ========== H. 文字数・メタ文字（ロール不問・postgres で可） ==========
+-- SELECT public.search_public_shelves_by_title('a', 'newest', 20, 0);
+--   → total_count=0
+-- SELECT public.search_public_shelves_by_title(repeat('x', 101), 'newest', 20, 0);
+--   → total_count=0
+-- SELECT public.search_public_shelves_by_title('100%_off', 'newest', 20, 0);
+--   → 例外なく jsonb
+;

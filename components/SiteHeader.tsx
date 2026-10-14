@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useLockBodyScroll } from "./useLockBodyScroll";
 
 type SiteHeaderProps = {
-  active?: "howto" | "about" | "home";
+  active?: "howto" | "about" | "home" | "search";
 };
 
 export default function SiteHeader({ active }: SiteHeaderProps) {
@@ -30,6 +30,13 @@ export default function SiteHeader({ active }: SiteHeaderProps) {
         </button>
 
         <nav id="site-nav" className={`lp-nav${menuOpen ? " is-open" : ""}`}>
+          <Link
+            href="/search"
+            className={`lp-nav-link${active === "search" ? " is-active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            棚を探す
+          </Link>
           <Link
             href="/howto"
             className={`lp-nav-link${active === "howto" ? " is-active" : ""}`}

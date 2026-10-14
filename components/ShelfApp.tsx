@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { mediaItems } from "../data/media";
@@ -521,6 +522,9 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         <div className="my-shelf-topbar-inner">
           <p className="my-shelf-logo">myshelf</p>
           <div className="my-shelf-account">
+            <Link href="/search" className="my-shelf-text-btn">
+              棚を探す
+            </Link>
             {authReady && !user && (
               <button
                 type="button"

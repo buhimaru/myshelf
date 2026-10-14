@@ -126,6 +126,9 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
             id="lp-nav"
             className={`lp-nav${menuOpen ? " is-open" : ""}`}
           >
+            <Link href="/search" className="lp-nav-link" onClick={() => setMenuOpen(false)}>
+              棚を探す
+            </Link>
             <Link href="/howto" className="lp-nav-link" onClick={() => setMenuOpen(false)}>
               使い方
             </Link>
