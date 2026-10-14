@@ -227,7 +227,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
           <section className="public-shelf-state" aria-live="polite">
             <h1 className="public-shelf-state-title">この棚は非公開です</h1>
             <p className="public-shelf-state-body">
-              所有者、または承認済みのフォロー関係があるユーザーだけが閲覧できます。
+              フォローが承認されると、この非公開の棚を閲覧できます。
             </p>
             {showFollow && (
               <div className="public-shelf-follow-wrap">
@@ -253,8 +253,8 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
               </div>
               <p className="my-shelf-desc">
                 {view.profile.is_public
-                  ? "公開されている棚です。"
-                  : "あなたに公開されている棚です。"}
+                  ? "公開中の棚です。"
+                  : "フォロー承認により閲覧できる非公開の棚です。"}
               </p>
               {showFollow && (
                 <div className="public-shelf-follow-wrap">

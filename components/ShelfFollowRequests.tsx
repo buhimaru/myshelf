@@ -12,9 +12,8 @@ import {
   rejectFollowRequest,
 } from "../utils/supabase/follow";
 import { fetchMyProfile } from "../utils/supabase/profile";
+import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
-
-const SUCCESS_TOAST_MS = 3500;
 
 type ShelfFollowRequestsProps = {
   user: User;
@@ -28,32 +27,13 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const refreshGenerationRef = useRef(0);
-  const toastTimerRef = useRef<number | null>(null);
-
-  const clearToastTimer = () => {
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
-  };
-
-  const showSuccessToast = useCallback((message: string) => {
-    clearToastTimer();
-    setActionMessage(message);
-    toastTimerRef.current = window.setTimeout(() => {
-      setActionMessage("");
-      toastTimerRef.current = null;
-    }, SUCCESS_TOAST_MS);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      clearToastTimer();
-    };
-  }, []);
+  const {
+    message: actionMessage,
+    show: showSuccessToast,
+    clear: clearSuccessToast,
+  } = useAutoDismissMessage();
 
   const refresh = useCallback(
     async (options?: { showLoading?: boolean }) => {
@@ -262,6 +242,10 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
             </button>
           </div>
 
+          <p className="shelf-panel-lead">
+            届いたフォロー申請を承認または拒否できます。
+          </p>
+
           {loading && (
             <p className="my-shelf-visibility-status">読み込み中...</p>
           )}
@@ -278,7 +262,6 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
                 <li key={request.id} className="shelf-follow-requests-item">
                   <div className="shelf-follow-requests-meta">
                     <p className="shelf-follow-requests-name">{request.label}</p>
-                    <p className="shelf-follow-requests-sub">届いた申請</p>
                   </div>
                   <div className="shelf-follow-requests-actions">
                     <button
@@ -308,11 +291,16 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
       )}
 
       {actionMessage && (
-        <p
-          className="shelf-follow-requests-toast my-shelf-visibility-success"
-          role="status"
-        >
+        <p className="shelf-ui-toast my-shelf-visibility-success" role="status">
           {actionMessage}
+          <button
+            type="button"
+            className="shelf-ui-toast-dismiss"
+            aria-label="通知を閉じる"
+            onClick={clearSuccessToast}
+          >
+            ×
+          </button>
         </p>
       )}
     </div>

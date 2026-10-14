@@ -16,6 +16,7 @@ import {
   unfollowShelf,
 } from "../utils/supabase/follow";
 import { fetchMyProfile } from "../utils/supabase/profile";
+import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
 
 type ShelfFollowButtonProps = {
@@ -36,8 +37,12 @@ export default function ShelfFollowButton({
   const [viewerIsPublic, setViewerIsPublic] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const {
+    message,
+    show: showSuccessMessage,
+    clear: clearSuccessMessage,
+  } = useAutoDismissMessage();
 
   const isOwnShelf = Boolean(viewer && viewer.id === ownerId);
   const isRegistered = Boolean(viewer && !viewer.is_anonymous);
@@ -91,13 +96,20 @@ export default function ShelfFollowButton({
       setStatus("none");
       setViewerIsPublic(false);
       setLoading(false);
-      setMessage("");
+      clearSuccessMessage();
       setError("");
       return;
     }
 
     void refreshStatus({ showLoading: true });
-  }, [ownerId, viewer?.id, isOwnShelf, isRegistered, refreshStatus]);
+  }, [
+    ownerId,
+    viewer?.id,
+    isOwnShelf,
+    isRegistered,
+    refreshStatus,
+    clearSuccessMessage,
+  ]);
 
   useFollowsSync(
     supabase,
@@ -156,7 +168,7 @@ export default function ShelfFollowButton({
     }
 
     setBusy(true);
-    setMessage("");
+    clearSuccessMessage();
     setError("");
 
     const result = await followShelf(supabase, ownerId);
@@ -179,7 +191,7 @@ export default function ShelfFollowButton({
     }
 
     setStatus(nextStatus);
-    setMessage(
+    showSuccessMessage(
       nextStatus === "accepted"
         ? ownerIsPublic
           ? "フォローしました。"
@@ -198,7 +210,7 @@ export default function ShelfFollowButton({
     if (!window.confirm(CANCEL_FOLLOW_REQUEST_CONFIRM)) return;
 
     setBusy(true);
-    setMessage("");
+    clearSuccessMessage();
     setError("");
 
     const result = await cancelOutgoingFollowRequest(supabase, ownerId);
@@ -210,7 +222,7 @@ export default function ShelfFollowButton({
     }
 
     setStatus("none");
-    setMessage("申請を取り消しました。");
+    showSuccessMessage("申請を取り消しました。");
     onFollowChanged?.("none");
     notifyFollowsChanged();
     setBusy(false);
@@ -230,7 +242,7 @@ export default function ShelfFollowButton({
     }
 
     setBusy(true);
-    setMessage("");
+    clearSuccessMessage();
     setError("");
 
     const result = await unfollowShelf(supabase, ownerId);
@@ -242,7 +254,7 @@ export default function ShelfFollowButton({
     }
 
     setStatus("none");
-    setMessage("フォローを解除しました。");
+    showSuccessMessage("フォローを解除しました。");
     onFollowChanged?.("none");
     notifyFollowsChanged();
     setBusy(false);

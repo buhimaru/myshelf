@@ -11,6 +11,7 @@ import { createClient } from "../utils/supabase/client";
 import {
   CANCEL_FOLLOW_REQUEST_CONFIRM,
   cancelOutgoingFollowRequest,
+  connectionKindClassName,
   connectionKindLabel,
   fetchMyConnections,
   notifyFollowsChanged,
@@ -20,6 +21,7 @@ import {
   unfollowShelf,
 } from "../utils/supabase/follow";
 import { fetchMyProfile } from "../utils/supabase/profile";
+import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
 
 type ShelfConnectionsProps = {
@@ -40,10 +42,14 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
   const [loadError, setLoadError] = useState("");
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [menuUserId, setMenuUserId] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
   const refreshGenerationRef = useRef(0);
+  const {
+    message: actionMessage,
+    show: showSuccessToast,
+    clear: clearSuccessToast,
+  } = useAutoDismissMessage();
 
   const refresh = useCallback(
     async (options?: { showLoading?: boolean }) => {
@@ -92,7 +98,6 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
       const generation = ++refreshGenerationRef.current;
       setLoading(true);
       setLoadError("");
-      setActionMessage("");
       setActionError("");
       setMenuUserId(null);
 
@@ -125,13 +130,17 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
     };
   }, [panelOpen, user.id, supabase]);
 
-  // Realtime / 復帰時 / 表示中ポーリングで一覧を同期
-  useFollowsSync(supabase, user.id, () => {
-    void refresh();
-  }, {
-    enabled: true,
-    pollWhileVisible: true,
-  });
+  useFollowsSync(
+    supabase,
+    user.id,
+    () => {
+      void refresh();
+    },
+    {
+      enabled: true,
+      pollWhileVisible: true,
+    }
+  );
 
   useEffect(() => {
     if (!menuUserId) return;
@@ -184,7 +193,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
 
     setMenuUserId(null);
     setActionKey(`unfollow:${person.userId}`);
-    setActionMessage("");
+    clearSuccessToast();
     setActionError("");
 
     const { error } = await unfollowShelf(supabase, person.userId);
@@ -195,7 +204,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
       return;
     }
 
-    setActionMessage(`${person.label} のフォローを解除しました。`);
+    showSuccessToast(`${person.label} のフォローを解除しました。`);
     notifyFollowsChanged();
     await refresh();
   };
@@ -217,7 +226,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
 
     setMenuUserId(null);
     setActionKey(`remove:${person.userId}`);
-    setActionMessage("");
+    clearSuccessToast();
     setActionError("");
 
     const { error } = await removeFollower(supabase, person.userId);
@@ -228,7 +237,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
       return;
     }
 
-    setActionMessage(`${person.label} をフォロワーから解除しました。`);
+    showSuccessToast(`${person.label} をフォロワーから解除しました。`);
     notifyFollowsChanged();
     await refresh();
   };
@@ -238,7 +247,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
     if (!window.confirm(CANCEL_FOLLOW_REQUEST_CONFIRM)) return;
 
     setActionKey(`cancel:${person.userId}`);
-    setActionMessage("");
+    clearSuccessToast();
     setActionError("");
 
     const { error } = await cancelOutgoingFollowRequest(
@@ -252,13 +261,13 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
       return;
     }
 
-    setActionMessage(`${person.label} への申請を取り消しました。`);
+    showSuccessToast(`${person.label} への申請を取り消しました。`);
     notifyFollowsChanged();
     await refresh();
   };
 
   return (
-    <>
+    <div className="shelf-connections">
       <button
         type="button"
         className={`my-shelf-visibility-chip shelf-connections-chip${panelOpen ? " is-open" : ""}`}
@@ -268,7 +277,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
           const next = !panelOpen;
           setPanelOpen(next);
           if (next) {
-            setActionMessage("");
+            clearSuccessToast();
             setActionError("");
           }
         }}
@@ -294,8 +303,8 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
             </button>
           </div>
 
-          <p className="shelf-connections-lead">
-            承認済みのつながりと、送った申請を確認できます。届いた申請は「申請」から確認してください。
+          <p className="shelf-panel-lead">
+            つながっている人と、送った申請を確認できます。届いた申請は「申請」から操作します。
           </p>
 
           {loading && (
@@ -324,12 +333,16 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
                           className="shelf-connections-item"
                         >
                           <div className="shelf-connections-main">
-                            <p className="shelf-connections-name is-plain">
-                              {person.label}
-                            </p>
-                            <p className="shelf-connections-relation">
-                              {connectionKindLabel(person.kind)}
-                            </p>
+                            <div className="shelf-connections-identity">
+                              <p className="shelf-connections-name is-plain">
+                                {person.label}
+                              </p>
+                              <span
+                                className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
+                              >
+                                {connectionKindLabel(person.kind)}
+                              </span>
+                            </div>
                           </div>
                           <button
                             type="button"
@@ -365,15 +378,19 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
                           className="shelf-connections-item"
                         >
                           <div className="shelf-connections-main">
-                            <Link
-                              href={shelfHref}
-                              className="shelf-connections-name"
-                            >
-                              {person.label}
-                            </Link>
-                            <p className="shelf-connections-relation">
-                              {connectionKindLabel(person.kind)}
-                            </p>
+                            <div className="shelf-connections-identity">
+                              <Link
+                                href={shelfHref}
+                                className="shelf-connections-name"
+                              >
+                                {person.label}
+                              </Link>
+                              <span
+                                className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
+                              >
+                                {connectionKindLabel(person.kind)}
+                              </span>
+                            </div>
                             <Link
                               href={shelfHref}
                               className="shelf-connections-visit"
@@ -447,14 +464,23 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
             </div>
           )}
 
-          {actionMessage && (
-            <p className="my-shelf-visibility-success" role="status">
-              {actionMessage}
-            </p>
-          )}
           {actionError && <p className="shelf-error">{actionError}</p>}
         </div>
       )}
-    </>
+
+      {actionMessage && (
+        <p className="shelf-ui-toast my-shelf-visibility-success" role="status">
+          {actionMessage}
+          <button
+            type="button"
+            className="shelf-ui-toast-dismiss"
+            aria-label="通知を閉じる"
+            onClick={clearSuccessToast}
+          >
+            ×
+          </button>
+        </p>
+      )}
+    </div>
   );
 }

@@ -15,14 +15,14 @@ export type FollowConfirmContext = {
 
 export function followRequestConfirmMessage(ctx: FollowConfirmContext): string {
   if (ctx.targetIsPublic) {
-    return "この公開棚をフォローします。公開棚はフォローなしでも閲覧できます。相手が非公開に切り替えた場合でも、このフォローだけでは非公開棚を閲覧できません。よろしいですか？";
+    return "この公開棚をフォローしますか？公開中は誰でも閲覧できます。相手が非公開にしても、このフォローだけでは非公開棚は見られません。";
   }
 
   if (ctx.viewerIsPublic) {
-    return "フォローを申請します。相手の承認後、相手の非公開棚を閲覧できるようになります。あなたの公開棚は相手が別途フォローしなくても閲覧できます。よろしいですか？";
+    return "フォローを申請しますか？承認されると相手の非公開棚を閲覧できます。あなたの公開棚は、相手がフォローしなくても閲覧できます。";
   }
 
-  return "フォローを申請します。相手の承認後、お互いの非公開棚を閲覧できるようになります。よろしいですか？";
+  return "フォローを申請しますか？承認されると、お互いの非公開棚を閲覧できます。";
 }
 
 export function followAcceptConfirmMessage(opts: {
@@ -96,12 +96,23 @@ export function connectionKindLabel(
   if (kind === "mutual") return "相互フォロー";
   if (kind === "following") return "フォロー中";
   if (kind === "follower") return "フォロワー";
-  if (kind === "outgoing_pending") return "申請中・承認待ち";
+  if (kind === "outgoing_pending") return "申請中";
   return "届いた申請";
 }
 
+/** 関係バッジ用の修飾クラス名（仕様は変えず見た目だけ） */
+export function connectionKindClassName(
+  kind: ShelfConnectionPerson["kind"]
+): string {
+  if (kind === "mutual") return "is-mutual";
+  if (kind === "following") return "is-following";
+  if (kind === "follower") return "is-follower";
+  if (kind === "outgoing_pending") return "is-pending";
+  return "is-incoming";
+}
+
 export const CANCEL_FOLLOW_REQUEST_CONFIRM =
-  "このフォロー申請を取り消しますか？相手の承認前なので、棚の閲覧権限はまだありません。";
+  "このフォロー申請を取り消しますか？";
 
 /** 申請承認・拒否・取り消し後に UI 同士を同期するためのイベント名 */
 export const FOLLOWS_CHANGED_EVENT = "myshelf:follows-changed";
