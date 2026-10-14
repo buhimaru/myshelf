@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "../utils/supabase/client";
+import {
+  buildEmailConfirmRedirectTo,
+  clearAllRegistrationUpgradeState,
+  consumeEmailConfirmReturn,
+  getEmailConfirmPending,
+  markRegistrationCompleteNotice,
+  setEmailConfirmPending,
+} from "../utils/supabase/registrationNotice";
 import ShelfPreview from "./ShelfPreview";
 import { useLockBodyScroll } from "./useLockBodyScroll";
 
@@ -22,13 +30,27 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
   const [authMessage, setAuthMessage] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
 
-  useLockBodyScroll(menuOpen);
+  useLockBodyScroll(menuOpen || showAuth);
 
   useEffect(() => {
     if (!initialAuthMode) return;
     setAuthMode(initialAuthMode);
     setShowAuth(true);
   }, [initialAuthMode]);
+
+  // メール確認リンクから戻ったがセッションが付いていない場合 → ログイン案内
+  useEffect(() => {
+    if (!consumeEmailConfirmReturn()) return;
+    const pending = getEmailConfirmPending();
+    if (pending?.email) {
+      setEmail(pending.email);
+    }
+    setAuthMode("login");
+    setShowAuth(true);
+    setAuthMessage(
+      "メール確認のあと、まだログインできていないようです。登録したメールアドレスとパスワードでログインしてください。ゲスト時代の棚は同じアカウントで引き継がれます。"
+    );
+  }, []);
 
   const openAuth = (mode: AuthMode) => {
     setAuthMode(mode);
@@ -44,15 +66,26 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
       const { data: userData } = await supabase.auth.getUser();
 
       if (userData.user?.is_anonymous) {
-        const { error } = await supabase.auth.updateUser({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.updateUser(
+          {
+            email,
+            password,
+          },
+          {
+            emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
+          }
+        );
         if (error) {
           setAuthMessage("アカウント登録に失敗しました: " + error.message);
           return;
         }
-        setAuthMessage("確認メールを送信しました。メールを確認してください。");
+        setEmailConfirmPending({
+          userId: userData.user.id,
+          email: email.trim(),
+        });
+        setAuthMessage(
+          "確認メールを送信しました。メール内のリンクから確認してください。確認が終わるまでは正式登録は完了していません。"
+        );
         return;
       }
 
@@ -60,7 +93,7 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
         },
       });
 
@@ -69,7 +102,9 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
         return;
       }
 
-      setAuthMessage("登録手続きを開始しました。メールを確認してください。");
+      setAuthMessage(
+        "登録手続きを開始しました。メール内のリンクから確認してください。確認が終わるまでは登録は完了していません。"
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -79,12 +114,23 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
     setAuthBusy(true);
     setAuthMessage("");
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) {
         setAuthMessage("ログインに失敗しました: " + error.message);
+        return;
+      }
+      if (data.user && !data.user.is_anonymous) {
+        // Landing は未ログイン起点。pending.userId 一致のときだけ昇格完了印を残す。
+        const pending = getEmailConfirmPending();
+        if (pending && pending.userId === data.user.id) {
+          clearAllRegistrationUpgradeState();
+          markRegistrationCompleteNotice(data.user.id);
+        } else {
+          clearAllRegistrationUpgradeState();
+        }
       }
     } finally {
       setAuthBusy(false);

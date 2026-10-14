@@ -1194,6 +1194,27 @@ body {
   font-size: 0.82rem;
 }
 
+.public-shelf-account {
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.public-shelf-viewer-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(11rem, 42vw);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+@media (min-width: 640px) {
+  .public-shelf-viewer-status {
+    max-width: 14rem;
+    font-size: 0.82rem;
+  }
+}
+
 .my-shelf-text-btn {
   border: none;
   background: transparent;
@@ -1206,9 +1227,82 @@ body {
   padding: 0;
 }
 
-.my-shelf-auth {
-  width: min(100% - 2.5rem, 420px);
-  margin: 1.25rem auto 0;
+.my-shelf-auth-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding:
+    max(0.75rem, env(safe-area-inset-top, 0px))
+    1rem
+    max(0.75rem, env(safe-area-inset-bottom, 0px));
+  background: rgba(41, 37, 36, 0.35);
+  box-sizing: border-box;
+}
+
+.my-shelf-auth-panel {
+  width: min(100%, 420px);
+  max-height: min(90dvh, calc(100% - 1.5rem));
+  margin: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 10px 30px rgba(28, 25, 23, 0.12);
+}
+
+.my-shelf-auth-panel.shelf-form {
+  margin-top: 0;
+}
+
+.my-shelf-auth-lead {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.my-shelf-auth-switch-note {
+  margin: -0.35rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.my-shelf-auth-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.my-shelf-auth-header .shelf-form-title {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.my-shelf-auth-close {
+  flex: 0 0 auto;
+  margin: 0.15rem 0 0;
+  padding: 0.2rem 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.my-shelf-auth-close:hover {
+  color: var(--accent);
 }
 
 .my-shelf-auth-actions {
@@ -1718,6 +1812,121 @@ body {
   cursor: pointer;
 }
 
+.my-shelf-guest-upgrade {
+  margin: 2rem 0 0;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.my-shelf-guest-upgrade-title {
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.my-shelf-guest-upgrade-lead {
+  margin: 0 0 0.55rem;
+  max-width: 36rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.my-shelf-guest-upgrade-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.my-shelf-guest-upgrade-link:hover {
+  color: var(--accent-hover);
+}
+
+.my-shelf-reg-notice {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.my-shelf-reg-notice--pending {
+  background: #fafaf9;
+}
+
+.my-shelf-reg-notice--done {
+  background: #f8faf8;
+  border-color: #d6e0d6;
+}
+
+.my-shelf-reg-notice-title {
+  margin: 0 0 0.4rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.my-shelf-reg-notice-body {
+  margin: 0 0 0.45rem;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.my-shelf-reg-notice-body:last-of-type {
+  margin-bottom: 0.65rem;
+}
+
+.my-shelf-reg-notice-action {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.my-shelf-reg-notice-action:hover {
+  color: var(--accent-hover);
+}
+
+.my-shelf-auth-message {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: #fafaf9;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.my-shelf-auth-message[role="alert"] {
+  background: #faf8f7;
+  border-color: #e7e5e4;
+}
+
 .my-shelf-toolbar {
   display: flex;
   flex-direction: column;
@@ -1982,7 +2191,7 @@ body {
 
 /* 他人の棚 */
 .public-shelf-intro {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
 }
 
 .public-shelf-heading-row {
@@ -1990,15 +2199,23 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
 }
 
 .public-shelf-heading-row .my-shelf-heading {
   margin: 0;
 }
 
+.public-shelf-intro .my-shelf-desc {
+  margin-bottom: 0;
+}
+
 .public-shelf-follow-wrap {
-  margin-top: 0.85rem;
+  margin-top: 0.65rem;
+}
+
+.public-shelf .my-shelf-toolbar {
+  margin-bottom: 1.1rem;
 }
 
 .shelf-follow {

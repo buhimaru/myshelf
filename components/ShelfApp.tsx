@@ -1,11 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { mediaItems } from "../data/media";
 import type { MediaType } from "../types/media";
 import { createClient } from "../utils/supabase/client";
+import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
+import {
+  buildEmailConfirmRedirectTo,
+  claimGuestUpgradeComplete,
+  clearAllRegistrationUpgradeState,
+  clearEmailConfirmPending,
+  consumeEmailConfirmReturn,
+  getEmailConfirmPending,
+  getPendingForUser,
+  setEmailConfirmPending,
+  type RegistrationNoticeKind,
+} from "../utils/supabase/registrationNotice";
 import ShelfConnections from "./ShelfConnections";
 import ShelfDisplayNameSettings from "./ShelfDisplayNameSettings";
 import ShelfFollowRequests from "./ShelfFollowRequests";
@@ -27,6 +40,13 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
   const [showAuth, setShowAuth] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authFormMessage, setAuthFormMessage] = useState("");
+  const [registrationNotice, setRegistrationNotice] =
+    useState<RegistrationNoticeKind | null>(null);
+  /** onAuthStateChange でアカウント切替を検出するための直前ユーザー */
+  const previousAuthUserRef = useRef<User | null>(initialUser);
+  /** モーダル表示直後、開いたクリックの mouseup が背景に当たって即閉じるのを防ぐ */
+  const authModalIgnoreCloseUntilRef = useRef(0);
   const [showForm, setShowForm] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -253,8 +273,53 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      const previousUser = previousAuthUserRef.current;
+      previousAuthUserRef.current = nextUser;
+      setUser(nextUser);
       setAuthReady(true);
+
+      // 別アカウントへ切り替わった場合は昇格通知を出さない
+      if (
+        previousUser &&
+        nextUser &&
+        previousUser.id !== nextUser.id
+      ) {
+        clearAllRegistrationUpgradeState();
+        setRegistrationNotice(null);
+        setShowAuth(false);
+        setAuthFormMessage("");
+        return;
+      }
+
+      // 同じ userId のゲスト→正式が確認できたときだけ完了案内
+      if (
+        nextUser &&
+        claimGuestUpgradeComplete(nextUser, {
+          previousUserId: previousUser?.id ?? null,
+          previousWasAnonymous: Boolean(previousUser?.is_anonymous),
+        })
+      ) {
+        setRegistrationNotice("registered");
+        setShowAuth(false);
+        setAuthFormMessage("");
+      } else if (nextUser && !nextUser.is_anonymous) {
+        // 通常のトークン更新などでは完了バナーを消さない（とじる操作のみ）
+        setRegistrationNotice((prev) =>
+          prev === "email_pending" || prev === "confirm_login" ? null : prev
+        );
+      } else if (nextUser?.is_anonymous) {
+        const pending = getPendingForUser(nextUser.id);
+        if (pending) {
+          setRegistrationNotice((prev) =>
+            prev === "confirm_login" ? prev : "email_pending"
+          );
+        } else {
+          setRegistrationNotice((prev) =>
+            prev === "email_pending" || prev === "registered" ? null : prev
+          );
+        }
+      }
     });
 
     return () => {
@@ -262,6 +327,129 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       subscription.unsubscribe();
     };
   }, [supabase]);
+
+  // メール確認戻り・保留状態を、実際の getUser 結果と照合する
+  useEffect(() => {
+    let cancelled = false;
+
+    const showConfirmLoginHelp = (pendingEmail?: string) => {
+      if (pendingEmail) setEmail(pendingEmail);
+      setRegistrationNotice("confirm_login");
+      setAuthFormMessage(
+        "メール確認のあと、まだゲスト表示のままのようです。登録したメールアドレスとパスワードでログインしてください。同じ棚の作品を引き継いで正式アカウントになります。"
+      );
+      setShowAuth(true);
+    };
+
+    const reconcile = async () => {
+      const fromReturn = consumeEmailConfirmReturn();
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled) return;
+
+      if (error || !data.user) {
+        if (fromReturn) {
+          const pending = getEmailConfirmPending();
+          showConfirmLoginHelp(pending?.email);
+        }
+        return;
+      }
+
+      const current = data.user;
+      setUser(current);
+
+      if (!current.is_anonymous) {
+        // fromReturn やメール一致だけでは出さない。userId 一致の昇格のみ。
+        const previousUser = previousAuthUserRef.current;
+        if (
+          claimGuestUpgradeComplete(current, {
+            previousUserId: previousUser?.id ?? null,
+            previousWasAnonymous: Boolean(previousUser?.is_anonymous),
+          })
+        ) {
+          setRegistrationNotice("registered");
+          setShowAuth(false);
+          setAuthFormMessage("");
+        } else {
+          setRegistrationNotice((prev) =>
+            prev === "registered" ? null : prev
+          );
+        }
+        return;
+      }
+
+      // まだゲスト: 戻り直後はセッション更新を一度試し、だめなら再ログイン案内
+      if (fromReturn) {
+        const pendingBefore = getPendingForUser(current.id);
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (cancelled) return;
+        const refreshedUser = refreshed.user ?? refreshed.session?.user ?? null;
+        if (
+          refreshedUser &&
+          !refreshedUser.is_anonymous &&
+          pendingBefore &&
+          refreshedUser.id === pendingBefore.userId
+        ) {
+          clearEmailConfirmPending();
+          setUser(refreshedUser);
+          setRegistrationNotice("registered");
+          setShowAuth(false);
+          setAuthFormMessage("");
+          return;
+        }
+        showConfirmLoginHelp(pendingBefore?.email);
+        return;
+      }
+
+      if (getPendingForUser(current.id)) {
+        setRegistrationNotice("email_pending");
+      }
+    };
+
+    void reconcile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, initialUser.id]);
+
+  // 確認メール待ちの間、タブに戻ったときに正式化済みか再確認する（signOut はしない）
+  useEffect(() => {
+    if (registrationNotice !== "email_pending") return;
+
+    let cancelled = false;
+
+    const recheck = async () => {
+      if (document.visibilityState === "hidden") return;
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const previousUser = previousAuthUserRef.current;
+      if (
+        data.user &&
+        claimGuestUpgradeComplete(data.user, {
+          previousUserId: previousUser?.id ?? null,
+          previousWasAnonymous: Boolean(previousUser?.is_anonymous),
+        })
+      ) {
+        previousAuthUserRef.current = data.user;
+        setUser(data.user);
+        setRegistrationNotice("registered");
+        setShowAuth(false);
+        setAuthFormMessage("");
+      }
+    };
+
+    const onVisible = () => {
+      void recheck();
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [registrationNotice, supabase]);
 
   // ユーザー切替・再ログイン時は取得完了まで「名前未設定」を出さない
   useEffect(() => {
@@ -410,20 +598,34 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
   };
 
   const handleSignUp = async () => {
+    setAuthFormMessage("");
     const { data: userData } = await supabase.auth.getUser();
 
     if (userData.user?.is_anonymous) {
-      const { error } = await supabase.auth.updateUser({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.updateUser(
+        {
+          email,
+          password,
+        },
+        {
+          emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
+        }
+      );
 
       if (error) {
-        alert("アカウント登録に失敗しました: " + error.message);
+        setAuthFormMessage(formatAuthErrorMessage(error, "update"));
+        setShowAuth(true);
         return;
       }
 
-      alert("確認メールを送信しました。メールを確認してな！");
+      setEmailConfirmPending({
+        userId: userData.user.id,
+        email: email.trim(),
+      });
+      setRegistrationNotice("email_pending");
+      setAuthFormMessage("");
+      setShowAuth(false);
+      setPassword("");
       return;
     }
 
@@ -431,43 +633,62 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
       },
     });
 
     if (error) {
-      alert("新規登録に失敗しました: " + error.message);
+      setAuthFormMessage(formatAuthErrorMessage(error, "sign_up"));
+      setShowAuth(true);
       return;
     }
 
-    alert("登録手続きを開始しました。メールを確認してな！");
+    setAuthFormMessage(
+      "登録手続きを開始しました。メール内のリンクから確認してください。確認が終わるまでは登録は完了していません。"
+    );
+    setShowAuth(true);
   };
 
   const handleSignIn = async () => {
+    setAuthFormMessage("");
+    const previousUser = user;
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    if (error) {
+      setAuthFormMessage(formatAuthErrorMessage(error, "sign_in"));
+      setShowAuth(true);
+      return;
+    }
+
+    if (data.user) {
+      previousAuthUserRef.current = data.user;
+    }
     setUser(data.user);
-    console.log("signin:", data, error);
+    if (data.user && !data.user.is_anonymous) {
+      // 既存アカウントへのログイン（user_id が変わる）では完了通知を出さない
+      const upgradedSameUser = claimGuestUpgradeComplete(data.user, {
+        previousUserId: previousUser?.id ?? null,
+        previousWasAnonymous: Boolean(previousUser?.is_anonymous),
+      });
+      if (upgradedSameUser) {
+        setRegistrationNotice("registered");
+      } else {
+        clearAllRegistrationUpgradeState();
+        setRegistrationNotice(null);
+      }
+      setShowAuth(false);
+      setAuthFormMessage("");
+      setPassword("");
+    }
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setItems([]);
-  };
-
-  const handleGuestSignIn = async () => {
-    const { data, error } = await supabase.auth.signInAnonymously();
-
-    if (error) {
-      alert("ゲストログインに失敗しました: " + error.message);
-      return;
-    }
-
-    setUser(data.user);
-    setShowAuth(false);
   };
 
   const typeLabel: Record<string, string> = {
@@ -500,6 +721,9 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
   /** 取得完了後の本当の空棚（読込前のフラッシュを避ける） */
   const showEmptyOnboarding = loaded && isShelfEmpty;
   const showShelfToolbar = loaded && !isShelfEmpty;
+  /** ゲストかつ作品ありのときだけ、控えめな正式登録案内 */
+  const showGuestUpgradeNudge =
+    loaded && Boolean(user?.is_anonymous) && items.length >= 1;
 
   const openComposeForm = () => {
     resetComposeFields();
@@ -535,6 +759,69 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     );
 
   const showAnimeDramaOption = type === "anime" || type === "drama";
+  const authModalOpen = Boolean(showAuth && user?.is_anonymous);
+  const authModalIsLoginHelp =
+    registrationNotice === "confirm_login" ||
+    registrationNotice === "email_pending";
+  const authModalTitle = authModalIsLoginHelp
+    ? "メールアドレスでログイン"
+    : "正式アカウントに登録";
+  const authModalLead = authModalIsLoginHelp
+    ? "登録したメールアドレスとパスワードでログインすると、ゲスト時代の棚を引き継げます。"
+    : "今の棚と作品をそのまま引き継いで、別の端末からも使えるようになります。";
+
+  const closeAuthModal = () => {
+    setShowAuth(false);
+    setAuthFormMessage("");
+  };
+
+  /**
+   * ボタンクリックと同じジェスチャで portal オーバーレイが描画されると、
+   * mouseup/click が背景に届いて即 close される。開くのを次タスクへ遅らせ、
+   * 直後の背景クリックは短時間無視する。
+   */
+  const openAuthModal = () => {
+    authModalIgnoreCloseUntilRef.current = Date.now() + 400;
+    window.setTimeout(() => {
+      setShowAuth(true);
+    }, 0);
+  };
+
+  const handleAuthOverlayPointerDown = (
+    event: MouseEvent<HTMLDivElement>
+  ) => {
+    if (event.target !== event.currentTarget) return;
+    if (Date.now() < authModalIgnoreCloseUntilRef.current) return;
+    closeAuthModal();
+  };
+
+  // body を position:fixed にすると、長い棚では fixed モーダルの基準が
+  // ページ全体になり画面外（上部）に寄る。overflow ロックのみ使う。
+  useEffect(() => {
+    if (!authModalOpen) return;
+    const { documentElement, body } = document;
+    const prev = {
+      htmlOverflow: documentElement.style.overflow,
+      bodyOverflow: body.style.overflow,
+    };
+    documentElement.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      documentElement.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+    };
+  }, [authModalOpen]);
+
+  useEffect(() => {
+    if (!authModalOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeAuthModal();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [authModalOpen]);
 
   return (
     <div className="my-shelf">
@@ -549,7 +836,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
               <button
                 type="button"
                 className="my-shelf-text-btn"
-                onClick={() => setShowAuth(true)}
+                onClick={openAuthModal}
               >
                 ログイン / 新規登録
               </button>
@@ -558,7 +845,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
               <button
                 type="button"
                 className="my-shelf-text-btn"
-                onClick={() => setShowAuth(true)}
+                onClick={openAuthModal}
               >
                 正式アカウントに登録
               </button>
@@ -579,50 +866,76 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         </div>
       </header>
 
-      {showAuth && (!user || user.is_anonymous) && (
-        <div className="my-shelf-auth shelf-form">
-          <h2 className="shelf-form-title">ログイン / 新規登録</h2>
-          <label className="shelf-field">
-            メールアドレス
-            <input
-              type="email"
-              placeholder="メールアドレス"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label className="shelf-field">
-            パスワード
-            <input
-              type="password"
-              placeholder="パスワード"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          <div className="my-shelf-auth-actions">
-            <button type="button" className="btn-primary" onClick={handleSignUp}>
-              新規登録
-            </button>
-            <button
-              type="button"
-              className="btn-primary is-close"
-              onClick={handleSignIn}
-            >
-              ログイン
-            </button>
-            <button
-              type="button"
-              className="my-shelf-text-btn"
-              onClick={handleGuestSignIn}
-            >
-              ゲストとして始める
-            </button>
-          </div>
-        </div>
-      )}
-
       <main className="my-shelf-main">
+        {registrationNotice === "email_pending" && (
+          <aside
+            className="my-shelf-reg-notice my-shelf-reg-notice--pending"
+            aria-live="polite"
+          >
+            <p className="my-shelf-reg-notice-title">確認メールを送信しました</p>
+            <p className="my-shelf-reg-notice-body">
+              メール内のリンクから確認してください。確認が終わるまでは正式登録は完了していません。
+            </p>
+            <p className="my-shelf-reg-notice-body">
+              確認後もこの画面がゲストのままのときは、登録したメールアドレスとパスワードでログインしてください。
+            </p>
+            <button
+              type="button"
+              className="my-shelf-reg-notice-action"
+              onClick={() => {
+                const pending = getEmailConfirmPending();
+                if (pending?.email) setEmail(pending.email);
+                setAuthFormMessage(
+                  "登録したメールアドレスとパスワードでログインしてください。"
+                );
+                openAuthModal();
+              }}
+            >
+              ログインフォームを開く
+            </button>
+          </aside>
+        )}
+
+        {registrationNotice === "registered" && user && !user.is_anonymous && (
+          <aside
+            className="my-shelf-reg-notice my-shelf-reg-notice--done"
+            aria-live="polite"
+          >
+            <p className="my-shelf-reg-notice-title">正式アカウントになりました</p>
+            <p className="my-shelf-reg-notice-body">
+              ゲスト時代の棚と作品はそのまま引き継がれています。別の端末からも、同じメールアドレスでログインできます。
+            </p>
+            <button
+              type="button"
+              className="my-shelf-reg-notice-action"
+              onClick={() => setRegistrationNotice(null)}
+            >
+              とじる
+            </button>
+          </aside>
+        )}
+
+        {registrationNotice === "confirm_login" && (
+          <aside
+            className="my-shelf-reg-notice my-shelf-reg-notice--pending"
+            aria-live="polite"
+          >
+            <p className="my-shelf-reg-notice-title">メール確認後のログイン</p>
+            <p className="my-shelf-reg-notice-body">
+              まだゲスト表示のままです。登録完了とは限りません。ログインフォームから、登録したメールアドレスとパスワードでログインしてください。
+            </p>
+            {!authModalOpen && (
+              <button
+                type="button"
+                className="my-shelf-reg-notice-action"
+                onClick={openAuthModal}
+              >
+                ログインフォームを開く
+              </button>
+            )}
+          </aside>
+        )}
+
         <section className="my-shelf-intro">
           <div className="my-shelf-intro-heading-row">
             <h1 className="my-shelf-heading">自分の棚</h1>
@@ -635,7 +948,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
             {user && (
               <ShelfVisibilitySettings
                 user={user}
-                onRequestRegister={() => setShowAuth(true)}
+                onRequestRegister={openAuthModal}
               />
             )}
             {user && !user.is_anonymous && (
@@ -986,7 +1299,121 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
             )
           )}
         </section>
+
+        {showGuestUpgradeNudge && (
+          <aside
+            className="my-shelf-guest-upgrade"
+            aria-label="正式アカウントへの登録案内"
+          >
+            <p className="my-shelf-guest-upgrade-title">
+              大切な棚を、これからも。
+            </p>
+            <p className="my-shelf-guest-upgrade-lead">
+              正式アカウントに登録すると、今の棚と作品をそのまま引き継いで、別の端末からも利用できます。
+            </p>
+            <button
+              type="button"
+              className="my-shelf-guest-upgrade-link"
+              onClick={openAuthModal}
+            >
+              無料で正式登録する →
+            </button>
+          </aside>
+        )}
       </main>
+
+      {authModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="my-shelf-auth-overlay"
+            role="presentation"
+            onMouseDown={handleAuthOverlayPointerDown}
+          >
+            <div
+              className="my-shelf-auth-panel shelf-form"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="my-shelf-auth-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="my-shelf-auth-header">
+                <h2 id="my-shelf-auth-title" className="shelf-form-title">
+                  {authModalTitle}
+                </h2>
+                <button
+                  type="button"
+                  className="my-shelf-auth-close"
+                  onClick={closeAuthModal}
+                >
+                  閉じる
+                </button>
+              </div>
+              <p className="my-shelf-auth-lead">{authModalLead}</p>
+              {user?.is_anonymous && (
+                <p className="my-shelf-auth-switch-note">
+                  ※既存アカウントにログインすると、そのアカウントの棚に切り替わります。現在のゲストの作品は自動では追加されません。
+                </p>
+              )}
+              {authFormMessage && (
+                <p className="my-shelf-auth-message" role="alert">
+                  {authFormMessage}
+                </p>
+              )}
+              <label className="shelf-field">
+                メールアドレス
+                <input
+                  type="email"
+                  placeholder="メールアドレス"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </label>
+              <label className="shelf-field">
+                パスワード
+                <input
+                  type="password"
+                  placeholder="パスワード"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={
+                    authModalIsLoginHelp ? "current-password" : "new-password"
+                  }
+                />
+              </label>
+              <div className="my-shelf-auth-actions">
+                {authModalIsLoginHelp ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handleSignIn}
+                  >
+                    ログイン
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleSignUp}
+                    >
+                      正式登録する
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary is-close"
+                      onClick={handleSignIn}
+                    >
+                      ログイン
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
