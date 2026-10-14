@@ -1719,15 +1719,30 @@ body {
 }
 
 .my-shelf-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1.5rem;
+}
+
+.my-shelf-toolbar-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.my-shelf-toolbar-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.65rem;
-  margin-bottom: 1.5rem;
 }
 
 .my-shelf-control,
 .my-shelf-reset {
   width: 100%;
+  min-width: 0;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1741,6 +1756,7 @@ body {
   background: #fff;
   color: var(--muted);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .my-shelf-reset:hover {
@@ -1757,6 +1773,37 @@ body {
   margin: 0 0 1.5rem;
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.my-shelf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 16rem;
+  padding: 2.5rem 1.25rem 3rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.my-shelf-empty-state-title {
+  margin: 0 0 0.65rem;
+  color: var(--accent);
+  font-size: clamp(1.1rem, 2.8vw, 1.35rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.my-shelf-empty-state-lead {
+  margin: 0 0 1.5rem;
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.my-shelf-empty-state-cta {
+  min-width: min(16rem, 100%);
 }
 
 .my-shelf-grid {
@@ -1898,9 +1945,22 @@ body {
     align-items: center;
   }
 
-  .my-shelf-toolbar {
-    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 0.8fr)) auto;
+  .my-shelf-toolbar-row {
+    grid-template-columns:
+      minmax(12rem, 1.8fr)
+      minmax(8.5rem, 10rem)
+      minmax(7rem, 8.5rem)
+      auto;
     align-items: center;
+  }
+
+  .my-shelf-control--search {
+    min-width: 12rem;
+  }
+
+  .my-shelf-reset {
+    width: auto;
+    padding-inline: 1rem;
   }
 
   .my-shelf-grid {

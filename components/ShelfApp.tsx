@@ -496,6 +496,18 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     game: "開発元不明",
   };
 
+  const isShelfEmpty = items.length === 0;
+  /** 取得完了後の本当の空棚（読込前のフラッシュを避ける） */
+  const showEmptyOnboarding = loaded && isShelfEmpty;
+  const showShelfToolbar = loaded && !isShelfEmpty;
+
+  const openComposeForm = () => {
+    resetComposeFields();
+    resetApiSearch();
+    setApiSearchGenre("book");
+    setShowForm(true);
+  };
+
   const visibleItems = [...items]
     .sort((a, b) => {
       if (sortOrder === "title") {
@@ -554,7 +566,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
             {authReady && user && !user.is_anonymous && (
               <span className="my-shelf-user">{user.email}</span>
             )}
-            {authReady && user && (
+            {authReady && user && !user.is_anonymous && (
               <button
                 type="button"
                 className="my-shelf-text-btn"
@@ -651,24 +663,23 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
           <p className="my-shelf-desc">
             好きな作品を、ジャンルを超えてひとつの棚に。
           </p>
-          <button
-            type="button"
-            className={`btn-primary${showForm ? " is-close" : ""}`}
-            onClick={() => {
-              if (showForm) {
-                setShowForm(false);
-                resetComposeFields();
-                resetApiSearch();
-                return;
-              }
-              resetComposeFields();
-              resetApiSearch();
-              setApiSearchGenre("book");
-              setShowForm(true);
-            }}
-          >
-            {showForm ? "閉じる" : "＋ 作品を追加"}
-          </button>
+          {(!showEmptyOnboarding || showForm) && (
+            <button
+              type="button"
+              className={`btn-primary${showForm ? " is-close" : ""}`}
+              onClick={() => {
+                if (showForm) {
+                  setShowForm(false);
+                  resetComposeFields();
+                  resetApiSearch();
+                  return;
+                }
+                openComposeForm();
+              }}
+            >
+              {showForm ? "閉じる" : "＋ 作品を追加"}
+            </button>
+          )}
         </section>
 
         {showForm && (
@@ -851,93 +862,129 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
           </section>
         )}
 
-        <section className="my-shelf-toolbar">
-          <input
-            className="my-shelf-control"
-            type="text"
-            placeholder="作品名・作者名で検索"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <select
-            className="my-shelf-control"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="all">すべてのカテゴリ</option>
-            <option value="book">本</option>
-            <option value="manga">漫画</option>
-            <option value="movie">映画</option>
-            <option value="music">音楽</option>
-            <option value="game">ゲーム</option>
-            <option value="anime">アニメ</option>
-            <option value="drama">ドラマ</option>
-          </select>
-          <select
-            className="my-shelf-control"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="newest">新しい順</option>
-            <option value="oldest">古い順</option>
-            <option value="title">作品名順</option>
-          </select>
-          <button
-            type="button"
-            className="my-shelf-reset"
-            onClick={handleResetFilters}
-          >
-            リセット
-          </button>
-        </section>
+        {showShelfToolbar && (
+          <section className="my-shelf-toolbar" aria-label="棚内の検索と絞り込み">
+            <p className="my-shelf-toolbar-hint">棚に登録した作品を探す</p>
+            <div className="my-shelf-toolbar-row">
+              <input
+                className="my-shelf-control my-shelf-control--search"
+                type="text"
+                placeholder="棚の中を作品名・作者名で検索"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <select
+                className="my-shelf-control my-shelf-control--filter"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">すべてのカテゴリ</option>
+                <option value="book">本</option>
+                <option value="manga">漫画</option>
+                <option value="movie">映画</option>
+                <option value="music">音楽</option>
+                <option value="game">ゲーム</option>
+                <option value="anime">アニメ</option>
+                <option value="drama">ドラマ</option>
+              </select>
+              <select
+                className="my-shelf-control my-shelf-control--filter"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="newest">新しい順</option>
+                <option value="oldest">古い順</option>
+                <option value="title">作品名順</option>
+              </select>
+              <button
+                type="button"
+                className="my-shelf-reset"
+                onClick={handleResetFilters}
+              >
+                リセット
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="my-shelf-collection">
-          <p className="my-shelf-count">{visibleItems.length}件の作品</p>
+          {showEmptyOnboarding ? (
+            !showForm && (
+              <div className="my-shelf-empty-state">
+                <p className="my-shelf-empty-state-title">まだ作品がありません</p>
+                <p className="my-shelf-empty-state-lead">
+                  まずは好きな本・漫画・映画・音楽・ゲームを棚に並べてみましょう。
+                </p>
+                <button
+                  type="button"
+                  className="btn-primary my-shelf-empty-state-cta"
+                  onClick={openComposeForm}
+                >
+                  ＋ 最初の作品を追加
+                </button>
+              </div>
+            )
+          ) : (
+            !isShelfEmpty && (
+              <>
+                <p className="my-shelf-count">{visibleItems.length}件の作品</p>
 
-          {visibleItems.length === 0 && (
-            <p className="my-shelf-empty">該当する作品がありません。</p>
+                {visibleItems.length === 0 && (
+                  <p className="my-shelf-empty">該当する作品がありません。</p>
+                )}
+
+                <div className="my-shelf-grid">
+                  {visibleItems.map((item) => (
+                    <article
+                      key={item.id}
+                      className={`my-shelf-item my-shelf-item--${item.type}`}
+                    >
+                      <div className="my-shelf-cover">
+                        <div
+                          className="my-shelf-cover-fallback"
+                          aria-hidden="true"
+                        >
+                          <span>{typeLabel[item.type] ?? "作品"}</span>
+                        </div>
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="my-shelf-meta">
+                        <h2 className="my-shelf-item-title">{item.title}</h2>
+                        <p className="my-shelf-item-creator">
+                          {item.creator || "作者不明"}
+                        </p>
+                        <p className="my-shelf-item-type">
+                          {typeLabel[item.type] ?? item.type}
+                        </p>
+                        <div className="my-shelf-item-actions">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(item.id)}
+                          >
+                            編集
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            削除
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )
           )}
-
-          <div className="my-shelf-grid">
-            {visibleItems.map((item) => (
-              <article
-                key={item.id}
-                className={`my-shelf-item my-shelf-item--${item.type}`}
-              >
-                <div className="my-shelf-cover">
-                  <div className="my-shelf-cover-fallback" aria-hidden="true">
-                    <span>{typeLabel[item.type] ?? "作品"}</span>
-                  </div>
-                  {item.imageUrl && (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  )}
-                </div>
-                <div className="my-shelf-meta">
-                  <h2 className="my-shelf-item-title">{item.title}</h2>
-                  <p className="my-shelf-item-creator">
-                    {item.creator || "作者不明"}
-                  </p>
-                  <p className="my-shelf-item-type">
-                    {typeLabel[item.type] ?? item.type}
-                  </p>
-                  <div className="my-shelf-item-actions">
-                    <button type="button" onClick={() => handleEdit(item.id)}>
-                      編集
-                    </button>
-                    <button type="button" onClick={() => handleDelete(item.id)}>
-                      削除
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
         </section>
       </main>
     </div>
