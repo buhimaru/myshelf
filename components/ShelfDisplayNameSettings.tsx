@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   DISPLAY_NAME_MAX_LENGTH,
@@ -11,6 +11,9 @@ import {
   fetchMyProfile,
   updateMyDisplayName,
 } from "../utils/supabase/profile";
+
+/** 保存成功メッセージ表示後、パネルを閉じるまでの待ち時間 */
+const SAVE_SUCCESS_CLOSE_MS = 1000;
 
 type ShelfDisplayNameSettingsProps = {
   user: User;
@@ -30,8 +33,28 @@ export default function ShelfDisplayNameSettings({
   const [loadError, setLoadError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
+  const closeTimerRef = useRef<number | null>(null);
 
   const publicLabel = resolvePublicDisplayName({ displayName: savedName });
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const closePanel = useCallback(() => {
+    clearCloseTimer();
+    setSaveMessage("");
+    setPanelOpen(false);
+  }, [clearCloseTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+    };
+  }, [clearCloseTimer]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +63,7 @@ export default function ShelfDisplayNameSettings({
     const load = async () => {
       setLoading(true);
       setLoadError("");
+      clearCloseTimer();
       setSaveMessage("");
       setSaveError("");
 
@@ -82,6 +106,7 @@ export default function ShelfDisplayNameSettings({
     if (saving) return;
 
     setSaving(true);
+    clearCloseTimer();
     setSaveMessage("");
     setSaveError("");
 
@@ -105,6 +130,13 @@ export default function ShelfDisplayNameSettings({
     setDraft(name ?? "");
     setSaveMessage("表示名を保存しました。");
     onDisplayNameChanged?.(name);
+
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setSaveMessage("");
+      setPanelOpen(false);
+    }, SAVE_SUCCESS_CLOSE_MS);
   };
 
   const chipLabel = loading ? "…" : "表示名";
@@ -117,13 +149,15 @@ export default function ShelfDisplayNameSettings({
         aria-expanded={panelOpen}
         aria-controls="shelf-display-name-panel"
         onClick={() => {
-          const next = !panelOpen;
-          setPanelOpen(next);
-          if (next) {
-            setSaveMessage("");
-            setSaveError("");
-            setDraft(savedName ?? "");
+          if (panelOpen) {
+            closePanel();
+            return;
           }
+          clearCloseTimer();
+          setSaveMessage("");
+          setSaveError("");
+          setDraft(savedName ?? "");
+          setPanelOpen(true);
         }}
       >
         <span>{chipLabel}</span>
@@ -141,7 +175,7 @@ export default function ShelfDisplayNameSettings({
             <button
               type="button"
               className="my-shelf-visibility-close"
-              onClick={() => setPanelOpen(false)}
+              onClick={closePanel}
             >
               閉じる
             </button>
