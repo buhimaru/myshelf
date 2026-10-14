@@ -8,15 +8,28 @@ import type { MediaItem } from "../types/media";
 import type { Profile } from "../types/profile";
 import {
   SHELF_TYPE_LABEL,
+  UNSET_DISPLAY_NAME,
   filterAndSortShelfItems,
   resolvePublicDisplayName,
   isValidAuthUuid,
 } from "../utils/shelfDisplay";
-import { subscribeAuthUser } from "../utils/supabase/authUser";
+import {
+  isAnonymousAuthUser,
+  isRegisteredAuthUser,
+  subscribeAuthUser,
+} from "../utils/supabase/authUser";
 import { createClient } from "../utils/supabase/client";
+import { fetchMyProfile } from "../utils/supabase/profile";
 import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
 import ShelfFollowButton from "./ShelfFollowButton";
+
+/** ヘッダー用: 閲覧者自身のログイン表示（所有者名と混同しない） */
+type ViewerHeaderStatus =
+  | { kind: "pending" }
+  | { kind: "hidden" }
+  | { kind: "guest" }
+  | { kind: "registered"; displayName: string | null };
 
 type PublicShelfViewProps = {
   userId: string;
@@ -34,6 +47,8 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const [supabase] = useState(() => createClient());
   const [viewer, setViewer] = useState<User | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [viewerHeaderStatus, setViewerHeaderStatus] =
+    useState<ViewerHeaderStatus>({ kind: "pending" });
   const [view, setView] = useState<ViewState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const viewRef = useRef<ViewState>(view);
@@ -49,6 +64,48 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
       setViewerReady(true);
     });
   }, [supabase]);
+
+  // 閲覧者自身の表示名のみ取得（訪問先 profile は使わない）
+  useEffect(() => {
+    if (!viewerReady) {
+      setViewerHeaderStatus({ kind: "pending" });
+      return;
+    }
+
+    if (!viewer) {
+      setViewerHeaderStatus({ kind: "hidden" });
+      return;
+    }
+
+    if (isAnonymousAuthUser(viewer)) {
+      setViewerHeaderStatus({ kind: "guest" });
+      return;
+    }
+
+    if (!isRegisteredAuthUser(viewer)) {
+      setViewerHeaderStatus({ kind: "hidden" });
+      return;
+    }
+
+    let cancelled = false;
+    setViewerHeaderStatus({ kind: "pending" });
+
+    void fetchMyProfile(supabase, viewer.id).then(({ data }) => {
+      if (cancelled) return;
+      const resolved = resolvePublicDisplayName({
+        displayName: data?.display_name,
+        usernameForLegacyCheck: data?.username,
+      });
+      setViewerHeaderStatus({
+        kind: "registered",
+        displayName: resolved === UNSET_DISPLAY_NAME ? null : resolved,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerReady, viewer?.id, viewer?.is_anonymous, supabase, viewer]);
 
   useEffect(() => {
     if (!viewerReady) return;
@@ -128,7 +185,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   // 承認待ちの非公開棚など、相手操作を表示中に確実に拾う
   const awaitingFollowSync =
     viewerReady &&
-    Boolean(viewer && !viewer.is_anonymous && viewer.id !== userId) &&
+    Boolean(isRegisteredAuthUser(viewer) && viewer?.id !== userId) &&
     (view.status === "private" || view.status === "ok");
 
   useFollowsSync(supabase, viewer?.id, requestShelfReload, {
@@ -162,7 +219,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
 
   const showFollow =
     (view.status === "ok" || view.status === "private") &&
-    !(viewer && viewer.id === userId);
+    !(viewerReady && viewer && viewer.id === userId);
 
   return (
     <div className="my-shelf public-shelf">
@@ -171,7 +228,26 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
           <Link href="/" className="my-shelf-logo-link">
             myshelf
           </Link>
-          <div className="my-shelf-account">
+          <div className="my-shelf-account public-shelf-account">
+            {viewerHeaderStatus.kind === "guest" && (
+              <span className="my-shelf-user public-shelf-viewer-status">
+                ゲスト利用中
+              </span>
+            )}
+            {viewerHeaderStatus.kind === "registered" && (
+              <span
+                className="my-shelf-user public-shelf-viewer-status"
+                title={
+                  viewerHeaderStatus.displayName
+                    ? `ログイン中：${viewerHeaderStatus.displayName}`
+                    : "ログイン中"
+                }
+              >
+                {viewerHeaderStatus.displayName
+                  ? `ログイン中：${viewerHeaderStatus.displayName}`
+                  : "ログイン中"}
+              </span>
+            )}
             <Link href="/" className="my-shelf-text-btn">
               自分の棚へ
             </Link>
@@ -235,6 +311,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                   ownerId={userId}
                   ownerIsPublic={false}
                   viewer={viewer}
+                  viewerReady={viewerReady}
                   onFollowChanged={handleFollowChanged}
                 />
               </div>
@@ -262,50 +339,57 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                     ownerId={userId}
                     ownerIsPublic={Boolean(view.profile.is_public)}
                     viewer={viewer}
+                    viewerReady={viewerReady}
                     onFollowChanged={handleFollowChanged}
                   />
                 </div>
               )}
             </section>
 
-            <section className="my-shelf-toolbar">
-              <input
-                className="my-shelf-control"
-                type="text"
-                placeholder="作品名・作者名で検索"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <select
-                className="my-shelf-control"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="all">すべてのカテゴリ</option>
-                <option value="book">本</option>
-                <option value="manga">漫画</option>
-                <option value="movie">映画</option>
-                <option value="music">音楽</option>
-                <option value="game">ゲーム</option>
-                <option value="anime">アニメ</option>
-                <option value="drama">ドラマ</option>
-              </select>
-              <select
-                className="my-shelf-control"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="newest">新しい順</option>
-                <option value="oldest">古い順</option>
-                <option value="title">作品名順</option>
-              </select>
-              <button
-                type="button"
-                className="my-shelf-reset"
-                onClick={handleResetFilters}
-              >
-                リセット
-              </button>
+            <section
+              className="my-shelf-toolbar"
+              aria-label="棚内の検索と絞り込み"
+            >
+              <p className="my-shelf-toolbar-hint">この棚の作品を探す</p>
+              <div className="my-shelf-toolbar-row">
+                <input
+                  className="my-shelf-control my-shelf-control--search"
+                  type="text"
+                  placeholder="作品名・作者名で検索"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <select
+                  className="my-shelf-control my-shelf-control--filter"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="all">すべてのカテゴリ</option>
+                  <option value="book">本</option>
+                  <option value="manga">漫画</option>
+                  <option value="movie">映画</option>
+                  <option value="music">音楽</option>
+                  <option value="game">ゲーム</option>
+                  <option value="anime">アニメ</option>
+                  <option value="drama">ドラマ</option>
+                </select>
+                <select
+                  className="my-shelf-control my-shelf-control--filter"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                >
+                  <option value="newest">新しい順</option>
+                  <option value="oldest">古い順</option>
+                  <option value="title">作品名順</option>
+                </select>
+                <button
+                  type="button"
+                  className="my-shelf-reset"
+                  onClick={handleResetFilters}
+                >
+                  リセット
+                </button>
+              </div>
             </section>
 
             <section className="my-shelf-collection">

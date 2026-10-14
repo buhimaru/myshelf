@@ -15,6 +15,10 @@ import {
   unfollowConfirmMessage,
   unfollowShelf,
 } from "../utils/supabase/follow";
+import {
+  isAnonymousAuthUser,
+  isRegisteredAuthUser,
+} from "../utils/supabase/authUser";
 import { fetchMyProfile } from "../utils/supabase/profile";
 import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
@@ -23,6 +27,8 @@ type ShelfFollowButtonProps = {
   ownerId: string;
   ownerIsPublic: boolean;
   viewer: User | null;
+  /** false の間はゲスト案内を出さない（認証確定前の誤表示防止） */
+  viewerReady?: boolean;
   onFollowChanged?: (status: FollowStatus) => void;
 };
 
@@ -30,6 +36,7 @@ export default function ShelfFollowButton({
   ownerId,
   ownerIsPublic,
   viewer,
+  viewerReady = true,
   onFollowChanged,
 }: ShelfFollowButtonProps) {
   const [supabase] = useState(() => createClient());
@@ -45,7 +52,7 @@ export default function ShelfFollowButton({
   } = useAutoDismissMessage();
 
   const isOwnShelf = Boolean(viewer && viewer.id === ownerId);
-  const isRegistered = Boolean(viewer && !viewer.is_anonymous);
+  const isRegistered = isRegisteredAuthUser(viewer);
 
   const refreshStatus = useCallback(
     async (options?: { showLoading?: boolean }) => {
@@ -128,6 +135,16 @@ export default function ShelfFollowButton({
     return null;
   }
 
+  if (!viewerReady) {
+    return (
+      <div className="shelf-follow">
+        <p className="shelf-follow-note" aria-live="polite">
+          認証状態を確認しています...
+        </p>
+      </div>
+    );
+  }
+
   if (!viewer) {
     return (
       <div className="shelf-follow">
@@ -141,7 +158,7 @@ export default function ShelfFollowButton({
     );
   }
 
-  if (viewer.is_anonymous) {
+  if (isAnonymousAuthUser(viewer)) {
     return (
       <div className="shelf-follow">
         <p className="shelf-follow-note">

@@ -1,8 +1,30 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 /**
+ * 匿名ゲストかどうか。
+ * is_anonymous が省略された場合はゲスト扱いにしない（誤ってフォロー導線を隠さない）。
+ */
+export function isAnonymousAuthUser(
+  user: User | null | undefined
+): boolean {
+  return user?.is_anonymous === true;
+}
+
+/**
+ * 本登録済み（非匿名）のログインユーザーか。
+ */
+export function isRegisteredAuthUser(
+  user: User | null | undefined
+): boolean {
+  return Boolean(user) && !isAnonymousAuthUser(user);
+}
+
+/**
  * 認証ユーザーを購読する。
- * getUser() の遅延応答が、その後の onAuthStateChange 結果を上書きしない。
+ *
+ * session.user だけだと is_anonymous が古いまま／欠落することがあるため、
+ * 各イベント後に getUser() で確定してから通知する。
+ * 古い getUser 応答が新しいイベント結果を上書きしないよう generation で無効化する。
  */
 export function subscribeAuthUser(
   supabase: SupabaseClient,
@@ -16,17 +38,22 @@ export function subscribeAuthUser(
     onUser(user);
   };
 
+  const resolveUser = (gen: number) => {
+    void supabase.auth.getUser().then(({ data, error }) => {
+      if (cancelled || gen !== generation) return;
+      if (error) {
+        apply(null, gen);
+        return;
+      }
+      apply(data.user, gen);
+    });
+  };
+
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    // 以降に返る古い getUser を無効化
+  } = supabase.auth.onAuthStateChange(() => {
     const gen = ++generation;
-    apply(session?.user ?? null, gen);
-  });
-
-  const gen = ++generation;
-  void supabase.auth.getUser().then(({ data }) => {
-    apply(data.user, gen);
+    resolveUser(gen);
   });
 
   return () => {
