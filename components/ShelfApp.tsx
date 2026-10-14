@@ -12,7 +12,7 @@ import ShelfFollowRequests from "./ShelfFollowRequests";
 import ShelfVisibilitySettings from "./ShelfVisibilitySettings";
 import { resolvePublicDisplayName } from "../utils/shelfDisplay";
 
-type ApiSearchGenre = "book" | "movie" | "music" | "game";
+type ApiSearchGenre = "book" | "manga" | "movie" | "music" | "game";
 
 type ShelfAppProps = {
   /** page.tsx で認証確定済みのユーザー（匿名含む） */
@@ -173,11 +173,13 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     const endpoint =
       apiSearchGenre === "book"
         ? "/api/books"
-        : apiSearchGenre === "movie"
-          ? "/api/movies"
-          : apiSearchGenre === "game"
-            ? "/api/games"
-            : "/api/music";
+        : apiSearchGenre === "manga"
+          ? "/api/manga"
+          : apiSearchGenre === "movie"
+            ? "/api/movies"
+            : apiSearchGenre === "game"
+              ? "/api/games"
+              : "/api/music";
 
     setApiSearchLoading(true);
     setApiSearchResults([]);
@@ -480,6 +482,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
 
   const apiSearchPlaceholder: Record<ApiSearchGenre, string> = {
     book: "本のタイトルを入力",
+    manga: "漫画のタイトルを入力",
     movie: "映画のタイトルを入力",
     music: "アルバム名・アーティスト名を入力",
     game: "ゲームのタイトルを入力",
@@ -487,6 +490,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
 
   const apiCreatorFallback: Record<ApiSearchGenre, string> = {
     book: "著者不明",
+    manga: "作者不明",
     movie: "監督不明",
     music: "アーティスト不明",
     game: "開発元不明",
@@ -688,6 +692,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                       }
                     >
                       <option value="book">本</option>
+                      <option value="manga">漫画</option>
                       <option value="movie">映画</option>
                       <option value="music">音楽</option>
                       <option value="game">ゲーム</option>
