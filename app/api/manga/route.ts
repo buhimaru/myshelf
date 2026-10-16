@@ -1,13 +1,22 @@
 /**
- * 漫画シリーズ検索（楽天ブックス書籍検索API）
+ * 漫画シリーズ検索（楽天ブックス総合検索API）
+ * - keyword を漫画・コミックジャンルに限定して1回だけ取得する
  * - 単行本単位の商品をシリーズ1件に集約して返す
  * - 巻ごとの個別登録は行わない
+ * - 429 のときは再試行しない
  * - 本番利用前に楽天の利用規約・画像利用条件の確認が必要
  */
 import { NextResponse } from "next/server";
 
-const RAKUTEN_BOOK_SEARCH_URL =
-  "https://openapi.rakuten.co.jp/services/api/BooksBook/Search/20170404";
+const RAKUTEN_BOOKS_TOTAL_SEARCH_URL =
+  "https://openapi.rakuten.co.jp/services/api/BooksTotal/Search/20170404";
+/** 楽天ブックス「漫画（コミック）」 */
+const MANGA_GENRE_ID = "001001";
+/**
+ * 書名が検索語と別表記でも、結果の過半数を占める単行本グループを
+ * 「検索語で始まる別作品」より前に出す。完全一致（200＋前方一致分）よりは低い。
+ */
+const CROSS_SCRIPT_SERIES_SCORE = 160;
 /** Web Application の Allowed websites に登録したオリジン（固定。クライアント入力は使わない） */
 const RAKUTEN_REQUEST_ORIGIN = "https://myshelf-gamma.vercel.app";
 const FETCH_TIMEOUT_MS = 10000;
@@ -63,12 +72,21 @@ const NON_MAIN_MARKERS = [
   "outside",
   "spoof",
   "スピンオフ",
+  "アニメコミックス",
+  "完全版",
+  "総集編",
+  "大全集",
+  "史集",
+  "セット",
+  "box",
+  "quiz",
+  "クイズ",
 ];
 
 function normalizeAuthor(author: string): string {
   return author
     .normalize("NFKC")
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, "")
     .replace(/[,，、/／].*$/, "")
     .trim()
     .toLowerCase();
@@ -214,6 +232,61 @@ function scoreAgainstQuery(seriesTitle: string, query: string): number {
   return score;
 }
 
+function scriptKind(text: string): "cjk" | "latin" | "mixed" | "other" {
+  const value = text.normalize("NFKC");
+  const cjk = /[\u3040-\u30ff\u3400-\u9fff]/u.test(value);
+  const latin = /[A-Za-z]/u.test(value);
+  if (cjk && latin) return "mixed";
+  if (cjk) return "cjk";
+  if (latin) return "latin";
+  return "other";
+}
+
+/** ひらがな・カタカナ・漢字だけの検索語と、ラテン文字だけの書名（またはその逆） */
+function isCrossScriptPair(query: string, title: string): boolean {
+  const queryKind = scriptKind(query);
+  const titleKind = scriptKind(title);
+  return (
+    (queryKind === "cjk" && titleKind === "latin") ||
+    (queryKind === "latin" && titleKind === "cjk")
+  );
+}
+
+/**
+ * 表記が違う原作候補を1件だけ選ぶ。
+ * 過半数かつ2位の2倍以上のときだけ。近い件数のときはどれも上げない。
+ */
+function pickCrossScriptBoostKey(
+  groups: Map<string, VolumeCandidate[]>,
+  query: string
+): string | null {
+  const total = [...groups.values()].reduce((sum, list) => sum + list.length, 0);
+  if (total === 0) return null;
+
+  const eligible = [...groups.entries()]
+    .map(([key, volumes]) => ({
+      key,
+      title: volumes[0]?.seriesTitle ?? "",
+      count: volumes.length,
+    }))
+    .filter(
+      (group) =>
+        group.count >= 3 &&
+        group.title !== "" &&
+        isCrossScriptPair(query, group.title) &&
+        !isLikelyNonMainTitle(group.title)
+    )
+    .sort((a, b) => b.count - a.count);
+
+  const top = eligible[0];
+  if (!top) return null;
+  const second = eligible[1];
+  const majority = top.count / total >= 0.5;
+  const clearLead = !second || top.count >= second.count * 2;
+  if (!majority || !clearLead) return null;
+  return top.key;
+}
+
 function groupIntoSeries(
   candidates: VolumeCandidate[],
   query: string
@@ -228,9 +301,10 @@ function groupIntoSeries(
     groups.set(key, list);
   }
 
+  const boostKey = pickCrossScriptBoostKey(groups, query);
   const results: Array<MangaResult & { matchScore: number }> = [];
 
-  for (const [, volumes] of groups) {
+  for (const [key, volumes] of groups) {
     if (volumes.length === 0) continue;
 
     // 表示用タイトルは巻1の除去後タイトルを優先（表記ゆれの代表）
@@ -258,6 +332,10 @@ function groupIntoSeries(
       `${representative.seriesTitle}-${representative.author}`;
 
     const title = representative.seriesTitle;
+    let matchScore = scoreAgainstQuery(title, query);
+    if (key === boostKey) {
+      matchScore = Math.max(matchScore, CROSS_SCRIPT_SERIES_SCORE);
+    }
     results.push({
       id: `manga:${encodeURIComponent(idSource)}`,
       title,
@@ -266,7 +344,7 @@ function groupIntoSeries(
         representative.author,
       type: "manga",
       imageUrl,
-      matchScore: scoreAgainstQuery(title, query),
+      matchScore,
     });
   }
 
@@ -313,13 +391,13 @@ export async function GET(request: Request) {
     );
   }
 
-  const url = new URL(RAKUTEN_BOOK_SEARCH_URL);
+  const url = new URL(RAKUTEN_BOOKS_TOTAL_SEARCH_URL);
   url.searchParams.set("applicationId", applicationId);
   url.searchParams.set("accessKey", accessKey);
   url.searchParams.set("format", "json");
   url.searchParams.set("formatVersion", "2");
-  url.searchParams.set("title", query);
-  url.searchParams.set("size", "9"); // コミック
+  url.searchParams.set("keyword", query);
+  url.searchParams.set("booksGenreId", MANGA_GENRE_ID);
   url.searchParams.set("hits", "30");
   url.searchParams.set("page", "1");
   url.searchParams.set("outOfStockFlag", "1");
