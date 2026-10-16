@@ -131,7 +131,8 @@ body {
 }
 
 .shelf-field input,
-.shelf-field select {
+.shelf-field select,
+.shelf-field textarea {
   width: 100%;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--border);
@@ -145,12 +146,27 @@ body {
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.shelf-field input::placeholder {
+.shelf-field input::placeholder,
+.shelf-field textarea::placeholder {
   color: #a8a29e;
 }
 
+.shelf-field textarea {
+  resize: vertical;
+  min-height: 6.5rem;
+  line-height: 1.6;
+}
+
+.shelf-field-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+  text-align: right;
+}
+
 .shelf-field input:focus,
-.shelf-field select:focus {
+.shelf-field select:focus,
+.shelf-field textarea:focus {
   border-color: #a8a29e;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(168, 162, 158, 0.25);
@@ -1972,6 +1988,41 @@ body {
   background: #fafaf9;
 }
 
+.my-shelf-detail-hint {
+  margin: 0.1rem 0 0;
+  color: #a8a29e;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .my-shelf-item-open .my-shelf-cover {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .my-shelf-item-open:hover .my-shelf-cover,
+  .my-shelf-item-open:focus-visible .my-shelf-cover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(28, 25, 23, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-shelf-item-open .my-shelf-cover {
+    transition: none;
+  }
+
+  .my-shelf-item-open:hover .my-shelf-cover,
+  .my-shelf-item-open:focus-visible .my-shelf-cover {
+    transform: none;
+    box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  }
+}
+
 .my-shelf-count {
   margin: 0 0 1rem;
   color: var(--muted);
@@ -2025,6 +2076,26 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.my-shelf-item-open {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.my-shelf-item-open:focus-visible {
+  outline: 2px solid rgba(28, 25, 23, 0.35);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
 .my-shelf-cover {
@@ -3088,4 +3159,103 @@ body {
     width: 100%;
     text-align: center;
   }
+}
+
+/* 作品詳細。一覧カードの指定は変えない */
+.shelf-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(28, 25, 23, 0.45);
+}
+
+.shelf-detail {
+  width: min(32rem, 100%);
+  max-height: min(40rem, calc(100vh - 2.5rem));
+  overflow: auto;
+  padding: 1.25rem 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.shelf-detail-close {
+  display: block;
+  margin: 0 0 1rem auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+  cursor: pointer;
+}
+
+.shelf-detail-close:hover {
+  color: var(--accent);
+}
+
+.shelf-detail-layout {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.shelf-detail-cover {
+  width: 7.5rem;
+  flex: 0 0 7.5rem;
+}
+
+.shelf-detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--accent);
+}
+
+.shelf-detail-creator {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.shelf-detail-genre {
+  margin: 0;
+  color: #a8a29e;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.shelf-detail-section {
+  margin-top: 1.25rem;
+}
+
+.shelf-detail-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.shelf-detail-description {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.shelf-detail-description--empty {
+  color: var(--muted);
 }

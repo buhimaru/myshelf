@@ -13,5 +13,7 @@ export type MediaItem = {
   title: string;
   creator?: string | null;
   imageUrl?: string;
+  /** 棚の持ち主が書いた紹介文。未入力は null */
+  description?: string | null;
   createdAt?: string;
 };

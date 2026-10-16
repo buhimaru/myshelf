@@ -33,7 +33,9 @@ async function fetchShelfItems(
 ): Promise<{ data: MediaItem[]; error: Error | null }> {
   const { data, error } = await supabase
     .from("items")
-    .select("id, title, category, creator, image_url, created_at, user_id")
+    .select(
+      "id, title, category, creator, image_url, description, created_at, user_id"
+    )
     .eq("user_id", ownerId);
 
   if (error) {

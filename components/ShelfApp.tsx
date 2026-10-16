@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { mediaItems } from "../data/media";
-import type { MediaType } from "../types/media";
+import type { MediaItem, MediaType } from "../types/media";
 import { createClient } from "../utils/supabase/client";
 import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
 import {
@@ -23,7 +23,13 @@ import ShelfConnections from "./ShelfConnections";
 import ShelfDisplayNameSettings from "./ShelfDisplayNameSettings";
 import ShelfFollowRequests from "./ShelfFollowRequests";
 import ShelfVisibilitySettings from "./ShelfVisibilitySettings";
-import { resolvePublicDisplayName } from "../utils/shelfDisplay";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  normalizeDescriptionInput,
+  readDescription,
+  resolvePublicDisplayName,
+} from "../utils/shelfDisplay";
+import ShelfItemDetail from "./ShelfItemDetail";
 
 type ApiSearchGenre = "book" | "manga" | "movie" | "music" | "game";
 
@@ -52,7 +58,9 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [creator, setCreator] = useState("");
+  const [description, setDescription] = useState("");
   const [type, setType] = useState<MediaType | "">("");
+  const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
   const [items, setItems] = useState<typeof mediaItems>([]);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -103,6 +111,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     setEditingId(null);
     setTitle("");
     setCreator("");
+    setDescription("");
     setType("");
     setImageUrl("");
     setError("");
@@ -114,6 +123,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     creator: string | null;
     type: MediaType;
     imageUrl: string;
+    description?: string | null;
   }): Promise<{ ok: true } | { ok: false; error: string }> => {
     if (!user) {
       return { ok: false, error: "ログインしてください" };
@@ -131,6 +141,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         category: payload.type,
         creator: payload.creator,
         image_url: payload.imageUrl,
+        description: payload.description ?? null,
         user_id: user.id,
       })
       .select()
@@ -146,6 +157,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         ...data,
         type: data.category,
         imageUrl: data.image_url,
+        description: readDescription(data.description),
         createdAt: data.created_at,
       },
     ]);
@@ -471,6 +483,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
             ...item,
             type: item.category,
             imageUrl: item.image_url,
+            description: readDescription(item.description),
             createdAt: item.created_at,
           }))
         );
@@ -510,6 +523,12 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     const trimmedTitle = title.trim();
     const creatorValue = creator.trim() === "" ? null : creator.trim();
     const imageUrlValue = imageUrl.trim();
+    const descriptionResult = normalizeDescriptionInput(description);
+    if (!descriptionResult.ok) {
+      setError(descriptionResult.error);
+      return;
+    }
+    const descriptionValue = descriptionResult.value;
 
     if (editingId) {
       const { error: updateError } = await supabase
@@ -519,6 +538,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
           creator: creatorValue,
           category: type,
           image_url: imageUrlValue,
+          description: descriptionValue,
         })
         .eq("id", editingId)
         .eq("user_id", user.id);
@@ -535,12 +555,14 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                 creator: creatorValue,
                 type: type,
                 imageUrl: imageUrlValue,
+                description: descriptionValue,
               }
             : item
         )
       );
       setTitle("");
       setCreator("");
+      setDescription("");
       setType("");
       setImageUrl("");
       setEditingId(null);
@@ -554,6 +576,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       creator: creatorValue,
       type,
       imageUrl: imageUrlValue,
+      description: descriptionValue,
     });
 
     if (!result.ok) {
@@ -563,6 +586,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
 
     setTitle("");
     setCreator("");
+    setDescription("");
     setType("");
     setImageUrl("");
     setShowManualForm(false);
@@ -580,15 +604,18 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       return;
     }
     setItems(items.filter((item) => item.id !== id));
+    setDetailItem((current) => (current?.id === id ? null : current));
   };
 
   const handleEdit = (id: string) => {
+    setDetailItem(null);
     setEditingId(id);
     const item = items.find((item) => item.id === id);
     if (!item) return;
 
     setTitle(item.title);
     setCreator(item.creator ?? "");
+    setDescription(item.description ?? "");
     setType(item.type);
     setImageUrl(item.imageUrl ?? "");
     setShowForm(true);
@@ -1144,6 +1171,19 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                   />
                 </label>
                 <label className="shelf-field">
+                  紹介文（任意）
+                  <textarea
+                    rows={5}
+                    maxLength={DESCRIPTION_MAX_LENGTH}
+                    placeholder="未入力でも登録できます"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                  <span className="shelf-field-count">
+                    {description.trim().length}/{DESCRIPTION_MAX_LENGTH}
+                  </span>
+                </label>
+                <label className="shelf-field">
                   ジャンル
                   <select
                     value={type}
@@ -1217,6 +1257,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                 リセット
               </button>
             </div>
+            <p className="my-shelf-detail-hint">表紙を押すと作品詳細</p>
           </section>
         )}
 
@@ -1252,45 +1293,57 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                       key={item.id}
                       className={`my-shelf-item my-shelf-item--${item.type}`}
                     >
-                      <div className="my-shelf-cover">
-                        <div
-                          className="my-shelf-cover-fallback"
-                          aria-hidden="true"
+                      <button
+                        type="button"
+                        className="my-shelf-item-open"
+                        onClick={() => setDetailItem(item)}
+                      >
+                        <div className="my-shelf-cover">
+                          <div
+                            className="my-shelf-cover-fallback"
+                            aria-hidden="true"
+                          >
+                            <span>{typeLabel[item.type] ?? "作品"}</span>
+                          </div>
+                          {item.imageUrl && (
+                            <img
+                              src={item.imageUrl}
+                              alt=""
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="my-shelf-meta">
+                          <h2 className="my-shelf-item-title">{item.title}</h2>
+                          <p className="my-shelf-item-creator">
+                            {item.creator || "作者不明"}
+                          </p>
+                          <p className="my-shelf-item-type">
+                            {typeLabel[item.type] ?? item.type}
+                          </p>
+                        </div>
+                      </button>
+                      <div className="my-shelf-item-actions">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(item.id);
+                          }}
                         >
-                          <span>{typeLabel[item.type] ?? "作品"}</span>
-                        </div>
-                        {item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        )}
-                      </div>
-                      <div className="my-shelf-meta">
-                        <h2 className="my-shelf-item-title">{item.title}</h2>
-                        <p className="my-shelf-item-creator">
-                          {item.creator || "作者不明"}
-                        </p>
-                        <p className="my-shelf-item-type">
-                          {typeLabel[item.type] ?? item.type}
-                        </p>
-                        <div className="my-shelf-item-actions">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(item.id)}
-                          >
-                            編集
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            削除
-                          </button>
-                        </div>
+                          編集
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(item.id);
+                          }}
+                        >
+                          削除
+                        </button>
                       </div>
                     </article>
                   ))}
@@ -1414,6 +1467,13 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
           </div>,
           document.body
         )}
+      {detailItem && (
+        <ShelfItemDetail
+          item={items.find((item) => item.id === detailItem.id) ?? detailItem}
+          genreLabel={typeLabel[detailItem.type] ?? detailItem.type}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
     </div>
   );
 }

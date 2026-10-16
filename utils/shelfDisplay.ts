@@ -24,6 +24,33 @@ export const UNSET_DISPLAY_NAME = "名前未設定";
 export const DISPLAY_NAME_MIN_LENGTH = 1;
 export const DISPLAY_NAME_MAX_LENGTH = 30;
 
+/**
+ * 紹介文の保存上限。
+ * 本番の public.items.description は text・NULL可・デフォルトNULL。
+ * 列自体に文字数制約はない前提で、入力はアプリ側で 1000 文字までに限る。空欄は null。
+ */
+export const DESCRIPTION_MAX_LENGTH = 1000;
+
+export function normalizeDescriptionInput(
+  raw: string
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  const value = raw.trim();
+  if (!value) return { ok: true, value: null };
+  if (value.length > DESCRIPTION_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `紹介文は${DESCRIPTION_MAX_LENGTH}文字以内で入力してください`,
+    };
+  }
+  return { ok: true, value };
+}
+
+export function readDescription(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 type PublicDisplayNameSource = {
   display_name?: string | null;
   /** 表示には使わない。登録時に email ローカル部が display_name へミラーされた検出用 */
@@ -96,6 +123,7 @@ export function mapDbItemToMediaItem(row: {
   category?: string | null;
   creator?: string | null;
   image_url?: string | null;
+  description?: string | null;
   created_at?: string | null;
 }): MediaItem {
   return {
@@ -104,6 +132,7 @@ export function mapDbItemToMediaItem(row: {
     type: (row.category ?? "book") as MediaType,
     creator: row.creator ?? null,
     imageUrl: row.image_url ?? undefined,
+    description: readDescription(row.description),
     createdAt: row.created_at ?? undefined,
   };
 }

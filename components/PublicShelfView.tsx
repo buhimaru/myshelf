@@ -23,6 +23,7 @@ import { fetchMyProfile } from "../utils/supabase/profile";
 import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
 import ShelfFollowButton from "./ShelfFollowButton";
+import ShelfItemDetail from "./ShelfItemDetail";
 
 /** ヘッダー用: 閲覧者自身のログイン表示（所有者名と混同しない） */
 type ViewerHeaderStatus =
@@ -54,6 +55,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const viewRef = useRef<ViewState>(view);
   viewRef.current = view;
 
+  const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
@@ -390,6 +392,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                   リセット
                 </button>
               </div>
+              <p className="my-shelf-detail-hint">表紙を押すと作品詳細</p>
             </section>
 
             <section className="my-shelf-collection">
@@ -409,32 +412,38 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                     key={item.id}
                     className={`my-shelf-item my-shelf-item--${item.type}`}
                   >
-                    <div className="my-shelf-cover">
-                      <div
-                        className="my-shelf-cover-fallback"
-                        aria-hidden="true"
-                      >
-                        <span>{SHELF_TYPE_LABEL[item.type] ?? "作品"}</span>
+                    <button
+                      type="button"
+                      className="my-shelf-item-open"
+                      onClick={() => setDetailItem(item)}
+                    >
+                      <div className="my-shelf-cover">
+                        <div
+                          className="my-shelf-cover-fallback"
+                          aria-hidden="true"
+                        >
+                          <span>{SHELF_TYPE_LABEL[item.type] ?? "作品"}</span>
+                        </div>
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt=""
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
                       </div>
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div className="my-shelf-meta">
-                      <h2 className="my-shelf-item-title">{item.title}</h2>
-                      <p className="my-shelf-item-creator">
-                        {item.creator || "作者不明"}
-                      </p>
-                      <p className="my-shelf-item-type">
-                        {SHELF_TYPE_LABEL[item.type] ?? item.type}
-                      </p>
-                    </div>
+                      <div className="my-shelf-meta">
+                        <h2 className="my-shelf-item-title">{item.title}</h2>
+                        <p className="my-shelf-item-creator">
+                          {item.creator || "作者不明"}
+                        </p>
+                        <p className="my-shelf-item-type">
+                          {SHELF_TYPE_LABEL[item.type] ?? item.type}
+                        </p>
+                      </div>
+                    </button>
                   </article>
                 ))}
               </div>
@@ -442,6 +451,18 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
           </>
         )}
       </main>
+      {detailItem && (
+        <ShelfItemDetail
+          item={
+            view.status === "ok"
+              ? (view.items.find((item) => item.id === detailItem.id) ??
+                detailItem)
+              : detailItem
+          }
+          genreLabel={SHELF_TYPE_LABEL[detailItem.type] ?? detailItem.type}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
     </div>
   );
 }
