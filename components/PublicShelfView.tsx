@@ -24,6 +24,8 @@ import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
 import ShelfFollowButton from "./ShelfFollowButton";
 import ShelfItemDetail from "./ShelfItemDetail";
+import ShelfSpineShelf from "./ShelfSpineShelf";
+import ShelfViewModeToggle, { useShelfViewMode } from "./ShelfViewModeToggle";
 
 /** ヘッダー用: 閲覧者自身のログイン表示（所有者名と混同しない） */
 type ViewerHeaderStatus =
@@ -59,6 +61,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [viewMode, setViewMode] = useShelfViewMode();
 
   useEffect(() => {
     return subscribeAuthUser(supabase, (next) => {
@@ -392,7 +395,14 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                   リセット
                 </button>
               </div>
-              <p className="my-shelf-detail-hint">表紙を押すと作品詳細</p>
+              <div className="my-shelf-toolbar-foot">
+                <p className="my-shelf-detail-hint">
+                  {viewMode === "spine"
+                    ? "背表紙を押すと作品詳細"
+                    : "表紙を押すと作品詳細"}
+                </p>
+                <ShelfViewModeToggle mode={viewMode} onChange={setViewMode} />
+              </div>
             </section>
 
             <section className="my-shelf-collection">
@@ -406,6 +416,9 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                 <p className="my-shelf-empty">該当する作品がありません。</p>
               )}
 
+              {viewMode === "spine" ? (
+                <ShelfSpineShelf items={visibleItems} onOpen={setDetailItem} />
+              ) : (
               <div className="my-shelf-grid">
                 {visibleItems.map((item) => (
                   <article
@@ -447,6 +460,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                   </article>
                 ))}
               </div>
+              )}
             </section>
           </>
         )}

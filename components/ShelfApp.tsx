@@ -30,6 +30,8 @@ import {
   resolvePublicDisplayName,
 } from "../utils/shelfDisplay";
 import ShelfItemDetail from "./ShelfItemDetail";
+import ShelfSpineShelf from "./ShelfSpineShelf";
+import ShelfViewModeToggle, { useShelfViewMode } from "./ShelfViewModeToggle";
 
 type ApiSearchGenre = "book" | "manga" | "movie" | "music" | "game";
 
@@ -94,6 +96,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     if (typeof window === "undefined") return "newest";
     return localStorage.getItem("myshelf-sort-order") || "newest";
   });
+  const [viewMode, setViewMode] = useShelfViewMode();
 
   const resetApiSearch = () => {
     apiSearchRequestIdRef.current += 1;
@@ -1257,7 +1260,14 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                 リセット
               </button>
             </div>
-            <p className="my-shelf-detail-hint">表紙を押すと作品詳細</p>
+            <div className="my-shelf-toolbar-foot">
+              <p className="my-shelf-detail-hint">
+                {viewMode === "spine"
+                  ? "背表紙を押すと作品詳細"
+                  : "表紙を押すと作品詳細"}
+              </p>
+              <ShelfViewModeToggle mode={viewMode} onChange={setViewMode} />
+            </div>
           </section>
         )}
 
@@ -1287,6 +1297,14 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                   <p className="my-shelf-empty">該当する作品がありません。</p>
                 )}
 
+                {viewMode === "spine" ? (
+                  <ShelfSpineShelf
+                    items={visibleItems}
+                    onOpen={setDetailItem}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ) : (
                 <div className="my-shelf-grid">
                   {visibleItems.map((item) => (
                     <article
@@ -1348,6 +1366,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                     </article>
                   ))}
                 </div>
+                )}
               </>
             )
           )}

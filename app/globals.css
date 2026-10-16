@@ -3259,3 +3259,428 @@ body {
 .shelf-detail-description--empty {
   color: var(--muted);
 }
+
+.my-shelf-toolbar-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.shelf-view-mode {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.shelf-view-mode button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.32rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.shelf-view-mode button.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.shelf-view-mode button:focus-visible {
+  outline: 2px solid rgba(28, 25, 23, 0.4);
+  outline-offset: 2px;
+}
+
+.spine-board {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  margin: 0.25rem 0 1.5rem;
+}
+
+.spine-row-items {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.spine-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 44px;
+}
+
+.spine-open {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.spine-open:focus-visible {
+  outline: 2px solid rgba(28, 25, 23, 0.45);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.spine-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
+  box-shadow: 0 1px 0 rgba(62, 38, 16, 0.28);
+}
+
+.spine-align--start {
+  align-items: flex-start;
+  padding-top: 0.85rem;
+}
+
+.spine-align--end {
+  align-items: flex-end;
+  padding-bottom: 1.05rem;
+}
+
+.spine-face--book,
+.spine-face--manga {
+  border-radius: 2px 5px 3px 1px;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.22) 0 2px,
+      rgba(255, 255, 255, 0.16) 2px 4px,
+      transparent 14%,
+      transparent 86%,
+      rgba(0, 0, 0, 0.16)
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 3px,
+      rgba(255, 255, 255, 0.045) 3px 4px
+    );
+  box-shadow:
+    inset 4px 0 5px rgba(0, 0, 0, 0.12),
+    inset -2px 0 0 rgba(255, 255, 255, 0.14),
+    1px 0 0 rgba(28, 25, 23, 0.06),
+    0 1px 0 rgba(62, 38, 16, 0.32);
+}
+
+.spine-face--book::after,
+.spine-face--manga::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  height: 8px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.spine-face--book.spine-motif--0::after,
+.spine-face--manga.spine-motif--0::after {
+  bottom: 9px;
+  background:
+    linear-gradient(currentColor, currentColor) center top / 100% 1px no-repeat,
+    linear-gradient(currentColor, currentColor) center bottom / 100% 1px no-repeat;
+}
+
+.spine-face--book.spine-motif--1::after,
+.spine-face--manga.spine-motif--1::after {
+  top: 8px;
+  height: 2px;
+  background: currentColor;
+}
+
+.spine-face--book.spine-motif--2::after,
+.spine-face--manga.spine-motif--2::after {
+  bottom: 8px;
+  left: auto;
+  right: 18%;
+  width: 7px;
+  height: 7px;
+  border: 1px solid currentColor;
+  background: transparent;
+}
+
+.spine-motif--1 .spine-title.is-vertical {
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+
+.spine-motif--2 .spine-title.is-vertical {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.spine-face--dvd,
+.spine-face--bluray,
+.spine-face--game,
+.spine-face--cd {
+  border-radius: 1.5px;
+  background-image: linear-gradient(
+    118deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.08) 14%,
+    transparent 32%,
+    transparent 74%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, 0.5),
+    inset -3px 0 0 rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    2px 0 0 rgba(28, 25, 23, 0.14),
+    0 1px 0 rgba(62, 38, 16, 0.34);
+}
+
+.spine-face--bluray::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 3px;
+  height: 5px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #9ec4ff, #2f6fe0 55%, #1d4fa8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+
+.spine-face--dvd::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  right: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.15)
+  );
+  pointer-events: none;
+}
+
+.spine-face--game::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 3px;
+  right: 3px;
+  height: 5px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.46);
+  pointer-events: none;
+}
+
+.spine-face--game.spine-motif--1::before {
+  top: auto;
+  bottom: 7px;
+}
+
+.spine-face--game.spine-motif--2::before {
+  top: 9px;
+  height: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.62);
+  background: none;
+}
+
+.spine-face--cd {
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.34),
+    inset 4px 0 0 rgba(230, 230, 230, 0.55),
+    inset -3px 0 0 rgba(0, 0, 0, 0.22),
+    2px 0 0 rgba(28, 25, 23, 0.12),
+    0 1px 0 rgba(62, 38, 16, 0.34);
+}
+
+.spine-face--lp {
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0.4rem 0.35rem 2.55rem;
+  border-radius: 2px;
+  background-image:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.2),
+      transparent 38%
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.04) 4px 5px
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    3px 0 0 rgba(28, 25, 23, 0.12),
+    0 2px 0 rgba(28, 25, 23, 0.16),
+    0 1px 0 rgba(62, 38, 16, 0.3);
+}
+
+.spine-face--lp::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -34%;
+  width: 68%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0 7%, transparent 8%),
+    repeating-radial-gradient(
+      circle at center,
+      rgba(0, 0, 0, 0.2) 0 1px,
+      transparent 1px 4px
+    );
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.spine-title {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+}
+
+.spine-title.is-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  max-height: calc(100% - 1.1rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+}
+
+.spine-title.is-horizontal {
+  width: 100%;
+  min-width: 0;
+  max-height: calc(100% - 2.1rem);
+  padding: 0.15rem 0.15rem 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.spine-plank {
+  position: relative;
+  height: 14px;
+  margin-top: 0;
+  border-radius: 1px 1px 0 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.07) 0 1px,
+      transparent 1px 8px
+    ),
+    repeating-linear-gradient(
+      92deg,
+      rgba(92, 54, 22, 0.07) 0 1px,
+      transparent 1px 13px
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.38),
+      transparent 42%,
+      rgba(70, 40, 16, 0.08)
+    ),
+    linear-gradient(
+      90deg,
+      #c4a06c 0%,
+      #e6d2a8 16%,
+      #d2b07a 34%,
+      #c49658 52%,
+      #e4c89a 74%,
+      #b8894e 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.spine-plank::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 5px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(#a88452, #7d5a34);
+  box-shadow: 0 7px 10px rgba(74, 44, 18, 0.14);
+  pointer-events: none;
+}
+
+.spine-board--editable .spine-row {
+  padding-bottom: 2.4rem;
+}
+
+.spine-actions {
+  position: absolute;
+  top: calc(100% + 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  justify-content: center;
+  min-height: 2rem;
+  white-space: nowrap;
+}
+
+.spine-actions button {
+  min-height: 2rem;
+  padding: 0.2rem 0.15rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spine-face {
+    transition: transform 180ms ease;
+  }
+
+  .spine-open:hover .spine-face,
+  .spine-open:focus-visible .spine-face {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine-face {
+    transition: none;
+  }
+
+  .spine-open:hover .spine-face,
+  .spine-open:focus-visible .spine-face {
+    transform: none;
+  }
+}
