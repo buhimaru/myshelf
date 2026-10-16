@@ -1,28 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 export type ShelfViewMode = "cover" | "spine";
-
-const STORAGE_KEY = "myshelf-view-mode";
 
 function readShelfViewMode(value: string | null): ShelfViewMode {
   return value === "spine" ? "spine" : "cover";
 }
 
-export function useShelfViewMode(): readonly [
+export function ownShelfViewModeKey(userId: string) {
+  return `myshelf-view-mode:own:${userId}`;
+}
+
+export function publicShelfViewModeKey(ownerId: string) {
+  return `myshelf-view-mode:shelf:${ownerId}`;
+}
+
+export function useShelfViewMode(storageKey: string): readonly [
   ShelfViewMode,
   (mode: ShelfViewMode) => void,
 ] {
   const [mode, setMode] = useState<ShelfViewMode>("cover");
 
-  useEffect(() => {
-    setMode(readShelfViewMode(localStorage.getItem(STORAGE_KEY)));
-  }, []);
+  useLayoutEffect(() => {
+    setMode(readShelfViewMode(localStorage.getItem(storageKey)));
+  }, [storageKey]);
 
   const update = (next: ShelfViewMode) => {
     setMode(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(storageKey, next);
   };
 
   return [mode, update] as const;

@@ -91,7 +91,6 @@ const GAME: Swatch[] = [
 ];
 
 const MIN_TAP = 44;
-const MIN_SLOT_WITH_ACTIONS = 84;
 
 function hashId(id: string): number {
   let h = 2166136261;
@@ -125,11 +124,7 @@ function formFor(type: MediaType, hash: number): SpineForm {
   return unit(hash, 7) < 0.5 ? "book" : "dvd";
 }
 
-export function spineAppearance(
-  id: string,
-  type: MediaType,
-  withActions: boolean
-): SpineAppearance {
+export function spineAppearance(id: string, type: MediaType): SpineAppearance {
   const hash = hashId(id);
   const form = formFor(type, hash);
   const color = swatch(
@@ -172,7 +167,7 @@ export function spineAppearance(
             ? pick(hash, 17, 164, 212)
             : pick(hash, 17, 168, 228);
 
-  const minSlot = withActions ? MIN_SLOT_WITH_ACTIONS : MIN_TAP;
+  const minSlot = MIN_TAP;
   const motif = Math.floor(unit(hash, 19) * 3) as SpineMotif;
   const align = (["start", "center", "end"] as const)[
     Math.floor(unit(hash, 23) * 3)

@@ -9,12 +9,16 @@ type ShelfItemDetailProps = {
   item: MediaItem;
   genreLabel: string;
   onClose: () => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
 export default function ShelfItemDetail({
   item,
   genreLabel,
   onClose,
+  onEdit,
+  onDelete,
 }: ShelfItemDetailProps) {
   const [mounted, setMounted] = useState(false);
   useLockBodyScroll(true);
@@ -86,6 +90,28 @@ export default function ShelfItemDetail({
             </p>
           )}
         </section>
+        {onEdit && onDelete && (
+          <div className="shelf-detail-actions">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(item.id);
+              }}
+            >
+              編集
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(item.id);
+              }}
+            >
+              削除
+            </button>
+          </div>
+        )}
       </div>
     </div>,
     document.body

@@ -31,7 +31,10 @@ import {
 } from "../utils/shelfDisplay";
 import ShelfItemDetail from "./ShelfItemDetail";
 import ShelfSpineShelf from "./ShelfSpineShelf";
-import ShelfViewModeToggle, { useShelfViewMode } from "./ShelfViewModeToggle";
+import ShelfViewModeToggle, {
+  ownShelfViewModeKey,
+  useShelfViewMode,
+} from "./ShelfViewModeToggle";
 
 type ApiSearchGenre = "book" | "manga" | "movie" | "music" | "game";
 
@@ -96,7 +99,9 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     if (typeof window === "undefined") return "newest";
     return localStorage.getItem("myshelf-sort-order") || "newest";
   });
-  const [viewMode, setViewMode] = useShelfViewMode();
+  const [viewMode, setViewMode] = useShelfViewMode(
+    ownShelfViewModeKey(user?.id ?? initialUser.id)
+  );
 
   const resetApiSearch = () => {
     apiSearchRequestIdRef.current += 1;
@@ -1301,8 +1306,6 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                   <ShelfSpineShelf
                     items={visibleItems}
                     onOpen={setDetailItem}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
                   />
                 ) : (
                 <div className="my-shelf-grid">
@@ -1491,6 +1494,8 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
           item={items.find((item) => item.id === detailItem.id) ?? detailItem}
           genreLabel={typeLabel[detailItem.type] ?? detailItem.type}
           onClose={() => setDetailItem(null)}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       )}
     </div>

@@ -10,11 +10,9 @@ const GAP = 6;
 type ShelfSpineShelfProps = {
   items: MediaItem[];
   onOpen: (item: MediaItem) => void;
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
 };
 
-function packRows(items: MediaItem[], width: number, withActions: boolean) {
+function packRows(items: MediaItem[], width: number) {
   if (items.length === 0) return [];
   if (width <= 0) return [items];
 
@@ -23,7 +21,7 @@ function packRows(items: MediaItem[], width: number, withActions: boolean) {
   let used = 0;
 
   for (const item of items) {
-    const slot = spineAppearance(item.id, item.type, withActions).slotWidth;
+    const slot = spineAppearance(item.id, item.type).slotWidth;
     const next = row.length === 0 ? slot : used + GAP + slot;
     if (row.length > 0 && next > width) {
       rows.push(row);
@@ -46,13 +44,10 @@ function rowSignature(rows: MediaItem[][]) {
 export default function ShelfSpineShelf({
   items,
   onOpen,
-  onEdit,
-  onDelete,
 }: ShelfSpineShelfProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
-  const withActions = Boolean(onEdit && onDelete);
   const [rows, setRows] = useState<MediaItem[][]>(() => [items]);
   const layoutKey = items.map((item) => `${item.id}:${item.type}`).join("|");
 
@@ -61,7 +56,7 @@ export default function ShelfSpineShelf({
     if (!board) return;
 
     const pack = () => {
-      const next = packRows(itemsRef.current, board.clientWidth, withActions);
+      const next = packRows(itemsRef.current, board.clientWidth);
       setRows((current) =>
         rowSignature(current) === rowSignature(next) ? current : next
       );
@@ -71,7 +66,7 @@ export default function ShelfSpineShelf({
     const observer = new ResizeObserver(pack);
     observer.observe(board);
     return () => observer.disconnect();
-  }, [layoutKey, withActions]);
+  }, [layoutKey]);
 
   if (items.length === 0) return null;
 
@@ -80,14 +75,14 @@ export default function ShelfSpineShelf({
   return (
     <div
       ref={boardRef}
-      className={`spine-board${withActions ? " spine-board--editable" : ""}`}
+      className="spine-board"
     >
       {rows.map((row) => (
         <div className="spine-row" key={row.map((item) => item.id).join("-")}>
           <div className="spine-row-items">
             {row.map((packed) => {
               const item = currentById.get(packed.id) ?? packed;
-              const look = spineAppearance(item.id, item.type, withActions);
+              const look = spineAppearance(item.id, item.type);
               const creator = item.creator?.trim() || "作者不明";
               const genre = SHELF_TYPE_LABEL[item.type] ?? "作品";
               return (
@@ -123,16 +118,6 @@ export default function ShelfSpineShelf({
                       </span>
                     </span>
                   </button>
-                  {withActions && onEdit && onDelete && (
-                    <div className="spine-actions my-shelf-item-actions">
-                      <button type="button" onClick={() => onEdit(item.id)}>
-                        編集
-                      </button>
-                      <button type="button" onClick={() => onDelete(item.id)}>
-                        削除
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}

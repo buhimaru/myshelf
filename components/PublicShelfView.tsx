@@ -25,7 +25,10 @@ import { useFollowsSync } from "../utils/useFollowsSync";
 import ShelfFollowButton from "./ShelfFollowButton";
 import ShelfItemDetail from "./ShelfItemDetail";
 import ShelfSpineShelf from "./ShelfSpineShelf";
-import ShelfViewModeToggle, { useShelfViewMode } from "./ShelfViewModeToggle";
+import ShelfViewModeToggle, {
+  publicShelfViewModeKey,
+  useShelfViewMode,
+} from "./ShelfViewModeToggle";
 
 /** ヘッダー用: 閲覧者自身のログイン表示（所有者名と混同しない） */
 type ViewerHeaderStatus =
@@ -61,7 +64,9 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
-  const [viewMode, setViewMode] = useShelfViewMode();
+  const [viewMode, setViewMode] = useShelfViewMode(
+    publicShelfViewModeKey(userId)
+  );
 
   useEffect(() => {
     return subscribeAuthUser(supabase, (next) => {

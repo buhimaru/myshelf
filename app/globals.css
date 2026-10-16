@@ -3260,6 +3260,29 @@ body {
   color: var(--muted);
 }
 
+.shelf-detail-actions {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.shelf-detail-actions button {
+  min-height: 44px;
+  padding: 0.4rem 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.shelf-detail-actions button:hover {
+  color: var(--accent);
+}
+
 .my-shelf-toolbar-foot {
   display: flex;
   flex-wrap: wrap;
@@ -3641,26 +3664,6 @@ body {
   background: linear-gradient(#a88452, #7d5a34);
   box-shadow: 0 7px 10px rgba(74, 44, 18, 0.14);
   pointer-events: none;
-}
-
-.spine-board--editable .spine-row {
-  padding-bottom: 2.4rem;
-}
-
-.spine-actions {
-  position: absolute;
-  top: calc(100% + 22px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  justify-content: center;
-  min-height: 2rem;
-  white-space: nowrap;
-}
-
-.spine-actions button {
-  min-height: 2rem;
-  padding: 0.2rem 0.15rem;
 }
 
 @media (hover: hover) and (pointer: fine) {
