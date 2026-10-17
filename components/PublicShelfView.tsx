@@ -22,6 +22,7 @@ import { createClient } from "../utils/supabase/client";
 import { fetchMyProfile } from "../utils/supabase/profile";
 import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
+import CoverShelf from "./CoverShelf";
 import ShelfFollowButton from "./ShelfFollowButton";
 import ShelfItemDetail from "./ShelfItemDetail";
 import ShelfSpineShelf from "./ShelfSpineShelf";
@@ -424,47 +425,12 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
               {viewMode === "spine" ? (
                 <ShelfSpineShelf items={visibleItems} onOpen={setDetailItem} />
               ) : (
-              <div className="my-shelf-grid">
-                {visibleItems.map((item) => (
-                  <article
-                    key={item.id}
-                    className={`my-shelf-item my-shelf-item--${item.type}`}
-                  >
-                    <button
-                      type="button"
-                      className="my-shelf-item-open"
-                      onClick={() => setDetailItem(item)}
-                    >
-                      <div className="my-shelf-cover">
-                        <div
-                          className="my-shelf-cover-fallback"
-                          aria-hidden="true"
-                        >
-                          <span>{SHELF_TYPE_LABEL[item.type] ?? "作品"}</span>
-                        </div>
-                        {item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt=""
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        )}
-                      </div>
-                      <div className="my-shelf-meta">
-                        <h2 className="my-shelf-item-title">{item.title}</h2>
-                        <p className="my-shelf-item-creator">
-                          {item.creator || "作者不明"}
-                        </p>
-                        <p className="my-shelf-item-type">
-                          {SHELF_TYPE_LABEL[item.type] ?? item.type}
-                        </p>
-                      </div>
-                    </button>
-                  </article>
-                ))}
-              </div>
+                <CoverShelf
+                  items={visibleItems}
+                  finish="walnut"
+                  depth
+                  onOpen={setDetailItem}
+                />
               )}
             </section>
           </>
