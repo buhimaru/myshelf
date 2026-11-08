@@ -1,0 +1,50 @@
+.switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: 100%;
+  margin: 0 0 0.85rem;
+}
+
+.switcher button {
+  min-height: 44px;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  background: #fff;
+  color: #78716c;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.switcher button.switchOn {
+  border-color: #44403c;
+  background: #44403c;
+  color: #fff;
+}
+
+.switcher button:focus-visible {
+  outline: 2px solid #44403c;
+  outline-offset: 2px;
+}
+
+.hint {
+  max-width: 42rem;
+  margin: -0.25rem 0 0.85rem;
+  color: #78716c;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.shelf {
+  display: block;
+  width: 100%;
+  height: auto;
+}

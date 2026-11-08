@@ -3,13 +3,26 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { MediaItem } from "../types/media";
 import { SHELF_TYPE_LABEL } from "../utils/shelfDisplay";
+import { shelfItemAriaLabel } from "../utils/tmdb/credits";
+import { boardFaces } from "../utils/shelfViewpoint";
 import { spineAppearance } from "../utils/spineAppearance";
 
 const GAP = 6;
 
+type ShelfWood = "oak" | "walnut";
+
 type ShelfSpineShelfProps = {
   items: MediaItem[];
   onOpen: (item: MediaItem) => void;
+  /** 木製の枠と背板。未指定の棚には出さない。 */
+  cabinet?: boolean;
+  /** 各段の内側の奥行き。枠の寸法は変えない。cabinet と一緒に使う。 */
+  interior?: boolean;
+  /** 側板・天板・棚板の面と、段ごとの陰影。枠の寸法は変えない。cabinet と一緒に使う。 */
+  structure?: boolean;
+  /** 中央を目の高さにした横板の見え方。cabinet と一緒に使う。 */
+  viewpoint?: boolean;
+  finish?: ShelfWood;
 };
 
 function packRows(items: MediaItem[], width: number) {
@@ -44,6 +57,11 @@ function rowSignature(rows: MediaItem[][]) {
 export default function ShelfSpineShelf({
   items,
   onOpen,
+  cabinet = false,
+  interior = false,
+  structure = false,
+  viewpoint = false,
+  finish = "oak",
 }: ShelfSpineShelfProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
@@ -72,18 +90,32 @@ export default function ShelfSpineShelf({
 
   const currentById = new Map(items.map((item) => [item.id, item]));
 
-  return (
+  const woodClass = finish === "walnut" ? "is-walnut" : "is-oak";
+  const board = (
     <div
       ref={boardRef}
-      className="spine-board"
+      className={cabinet ? "spine-board" : `spine-board ${woodClass}`}
     >
-      {rows.map((row) => (
-        <div className="spine-row" key={row.map((item) => item.id).join("-")}>
+      {rows.map((row, rowIndex) => {
+        const faces = boardFaces(rowIndex + 1, rows.length + 1);
+        return (
+        <div
+          className="spine-row"
+          key={row.map((item) => item.id).join("-")}
+          style={
+            cabinet && viewpoint
+              ? {
+                  ["--board-front" as string]: `${faces.front}px`,
+                  ["--board-under" as string]: `${faces.under}px`,
+                  ["--board-deck" as string]: `${faces.deck}px`,
+                }
+              : undefined
+          }
+        >
           <div className="spine-row-items">
             {row.map((packed) => {
               const item = currentById.get(packed.id) ?? packed;
               const look = spineAppearance(item.id, item.type);
-              const creator = item.creator?.trim() || "作者不明";
               const genre = SHELF_TYPE_LABEL[item.type] ?? "作品";
               return (
                 <div
@@ -94,7 +126,12 @@ export default function ShelfSpineShelf({
                   <button
                     type="button"
                     className="spine-open"
-                    aria-label={`${item.title}、${creator}、${genre}。作品詳細を開く`}
+                    aria-label={shelfItemAriaLabel({
+                      title: item.title,
+                      creator: item.creator,
+                      type: item.type,
+                      genreLabel: genre,
+                    })}
                     onClick={() => onOpen(item)}
                   >
                     <span
@@ -122,9 +159,43 @@ export default function ShelfSpineShelf({
               );
             })}
           </div>
-          <div className="spine-plank" aria-hidden="true" />
+          <div
+            className={
+              cabinet
+                ? `spine-plank is-set${faces.deck ? " is-deck" : ""}${
+                    faces.under ? " is-under" : ""
+                  }`
+                : "spine-plank"
+            }
+            aria-hidden="true"
+          />
         </div>
-      ))}
+        );
+      })}
+    </div>
+  );
+
+  if (!cabinet) return board;
+
+  return (
+    <div
+      className={`spine-case ${woodClass}${cabinet && interior ? " is-interior" : ""}${
+        cabinet && structure ? " is-structure" : ""
+      }${cabinet && viewpoint ? " is-viewpoint" : ""}`}
+      style={
+        viewpoint
+          ? {
+              ["--board-front" as string]: `${boardFaces(0, rows.length + 1).front}px`,
+              ["--board-under" as string]: `${boardFaces(0, rows.length + 1).under}px`,
+            }
+          : undefined
+      }
+    >
+      <div className="spine-case-back" aria-hidden="true" />
+      <div className="spine-case-side is-left" aria-hidden="true" />
+      <div className="spine-case-side is-right" aria-hidden="true" />
+      <div className="spine-case-top" aria-hidden="true" />
+      {board}
     </div>
   );
 }

@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
 import { createClient } from "../utils/supabase/client";
 import {
   buildEmailConfirmRedirectTo,
   clearAllRegistrationUpgradeState,
+  clearSignupEmailPending,
   consumeEmailConfirmReturn,
+  emailConfirmRedirectHint,
+  getConfiguredPublicSiteOrigin,
   getEmailConfirmPending,
+  getSignupEmailPending,
+  isLoopbackOrigin,
   markRegistrationCompleteNotice,
+  planEmailConfirmRedirect,
   setEmailConfirmPending,
+  setSignupEmailPending,
 } from "../utils/supabase/registrationNotice";
 import ShelfPreview from "./ShelfPreview";
 import { useLockBodyScroll } from "./useLockBodyScroll";
@@ -18,39 +26,88 @@ type AuthMode = "login" | "start";
 
 type LandingPageProps = {
   initialAuthMode?: AuthMode | null;
+  /** メール確認失敗など、親から渡す初期メッセージ */
+  initialAuthMessage?: string | null;
+  /** 確認戻り・失敗時はログインフォームを優先表示 */
+  preferLogin?: boolean;
 };
 
-export default function LandingPage({ initialAuthMode = null }: LandingPageProps) {
+type LandingBoot = {
+  email: string;
+  authMode: AuthMode;
+  showAuth: boolean;
+  authMessage: string;
+  signupEmailPending: boolean;
+};
+
+function readLandingBoot(
+  initialAuthMode: AuthMode | null,
+  initialAuthMessage: string | null,
+  preferLogin: boolean
+): LandingBoot {
+  const signupEmail = getSignupEmailPending();
+  const guestPending = getEmailConfirmPending();
+  const pendingEmail = guestPending?.email ?? signupEmail ?? "";
+  // Strict Mode の二重初期化でも preferLogin / initialAuthMessage は残る。
+  // return 印はここで消費し、ShelfApp 側の重複案内を防ぐ。
+  const fromReturn = consumeEmailConfirmReturn();
+  const forceLogin =
+    preferLogin || Boolean(initialAuthMessage) || fromReturn;
+
+  if (forceLogin) {
+    return {
+      email: pendingEmail,
+      authMode: "login",
+      showAuth: true,
+      authMessage:
+        initialAuthMessage ??
+        (fromReturn || preferLogin
+          ? "メール確認が完了しました。登録したメールアドレスとパスワードでログインしてください。ゲスト時代の棚がある場合は、同じアカウントで引き継がれます。"
+          : ""),
+      signupEmailPending: false,
+    };
+  }
+
+  return {
+    email: pendingEmail,
+    authMode:
+      initialAuthMode === "login"
+        ? "login"
+        : (initialAuthMode ?? "start"),
+    showAuth: Boolean(initialAuthMode),
+    authMessage: "",
+    signupEmailPending: Boolean(signupEmail),
+  };
+}
+
+export default function LandingPage({
+  initialAuthMode = null,
+  initialAuthMessage = null,
+  preferLogin = false,
+}: LandingPageProps) {
   const supabase = createClient();
+  const [boot] = useState(() =>
+    readLandingBoot(initialAuthMode, initialAuthMessage, preferLogin)
+  );
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showAuth, setShowAuth] = useState(Boolean(initialAuthMode));
-  const [authMode, setAuthMode] = useState<AuthMode>(initialAuthMode ?? "start");
-  const [email, setEmail] = useState("");
+  const [showAuth, setShowAuth] = useState(boot.showAuth);
+  const [authMode, setAuthMode] = useState<AuthMode>(boot.authMode);
+  const [email, setEmail] = useState(boot.email);
   const [password, setPassword] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
+  const [authMessage, setAuthMessage] = useState(boot.authMessage);
   const [authBusy, setAuthBusy] = useState(false);
+  const [signupEmailPending, setSignupEmailPendingState] = useState(
+    boot.signupEmailPending
+  );
+  const [showLoopbackConfirmHint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      isLoopbackOrigin(window.location.origin) &&
+      !getConfiguredPublicSiteOrigin()
+    );
+  });
 
   useLockBodyScroll(menuOpen || showAuth);
-
-  useEffect(() => {
-    if (!initialAuthMode) return;
-    setAuthMode(initialAuthMode);
-    setShowAuth(true);
-  }, [initialAuthMode]);
-
-  // メール確認リンクから戻ったがセッションが付いていない場合 → ログイン案内
-  useEffect(() => {
-    if (!consumeEmailConfirmReturn()) return;
-    const pending = getEmailConfirmPending();
-    if (pending?.email) {
-      setEmail(pending.email);
-    }
-    setAuthMode("login");
-    setShowAuth(true);
-    setAuthMessage(
-      "メール確認のあと、まだログインできていないようです。登録したメールアドレスとパスワードでログインしてください。ゲスト時代の棚は同じアカウントで引き継がれます。"
-    );
-  }, []);
 
   const openAuth = (mode: AuthMode) => {
     setAuthMode(mode);
@@ -65,45 +122,69 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
     try {
       const { data: userData } = await supabase.auth.getUser();
 
+      const redirectPlan = planEmailConfirmRedirect(window.location.origin);
+      const redirectHint = emailConfirmRedirectHint(redirectPlan);
+      const emailRedirectTo = buildEmailConfirmRedirectTo(
+        window.location.origin
+      );
+
       if (userData.user?.is_anonymous) {
         const { error } = await supabase.auth.updateUser(
           {
             email,
             password,
           },
-          {
-            emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
-          }
+          { emailRedirectTo }
         );
         if (error) {
-          setAuthMessage("アカウント登録に失敗しました: " + error.message);
+          setAuthMessage(formatAuthErrorMessage(error, "update"));
           return;
         }
         setEmailConfirmPending({
           userId: userData.user.id,
           email: email.trim(),
         });
+        clearSignupEmailPending();
+        setSignupEmailPendingState(false);
         setAuthMessage(
-          "確認メールを送信しました。メール内のリンクから確認してください。確認が終わるまでは正式登録は完了していません。"
+          [
+            "確認メールを送信しました。メール内のリンクから確認してください。確認が終わるまでは正式登録は完了していません。別の端末で確認した場合は、確認後にこの画面からログインしてください。",
+            redirectHint,
+          ]
+            .filter(Boolean)
+            .join(" ")
         );
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: buildEmailConfirmRedirectTo(window.location.origin),
-        },
+        options: { emailRedirectTo },
       });
 
       if (error) {
-        setAuthMessage("新規登録に失敗しました: " + error.message);
+        setAuthMessage(formatAuthErrorMessage(error, "sign_up"));
         return;
       }
 
+      // メール確認必須のとき session は null。確認前に棚へ入らない。
+      if (data.session && data.user && !data.user.is_anonymous) {
+        clearAllRegistrationUpgradeState();
+        return;
+      }
+
+      setSignupEmailPending(email.trim());
+      setSignupEmailPendingState(true);
+      setPassword("");
+      setAuthMode("login");
       setAuthMessage(
-        "登録手続きを開始しました。メール内のリンクから確認してください。確認が終わるまでは登録は完了していません。"
+        [
+          "確認メールを送信しました。メール内のリンクを開いて確認したあと、こちらからログインしてください。確認が終わるまでは登録は完了していません。",
+          redirectHint,
+        ]
+          .filter(Boolean)
+          .join(" ")
       );
     } finally {
       setAuthBusy(false);
@@ -119,7 +200,7 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
         password,
       });
       if (error) {
-        setAuthMessage("ログインに失敗しました: " + error.message);
+        setAuthMessage(formatAuthErrorMessage(error, "sign_in"));
         return;
       }
       if (data.user && !data.user.is_anonymous) {
@@ -131,6 +212,7 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
         } else {
           clearAllRegistrationUpgradeState();
         }
+        setSignupEmailPendingState(false);
       }
     } finally {
       setAuthBusy(false);
@@ -143,7 +225,7 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
     try {
       const { error } = await supabase.auth.signInAnonymously();
       if (error) {
-        setAuthMessage("ゲストログインに失敗しました: " + error.message);
+        setAuthMessage(formatAuthErrorMessage(error, "sign_in"));
       }
     } finally {
       setAuthBusy(false);
@@ -200,6 +282,37 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
       </header>
 
       <main>
+        {signupEmailPending && (
+          <aside className="lp-signup-pending" aria-live="polite">
+            <p className="lp-signup-pending-title">確認メールを送信しました</p>
+            <p className="lp-signup-pending-body">
+              メール内のリンクから確認してください。確認が終わるまでは登録は完了しておらず、自分の棚には入れません。
+            </p>
+            <p className="lp-signup-pending-body">
+              スマホなど別の端末で確認した場合も、確認後にこの画面からログインしてください。自動ではログインされません。
+            </p>
+            {showLoopbackConfirmHint && (
+              <p className="lp-signup-pending-body">
+                開発中の localhost
+                宛てのリンクはスマホでページを表示できません。認証自体は完了していることが多いので、このPCからログインしてください。
+              </p>
+            )}
+            <button
+              type="button"
+              className="lp-signup-pending-action"
+              onClick={() => {
+                setAuthMode("login");
+                setShowAuth(true);
+                setAuthMessage(
+                  "メール確認が終わっていれば、登録したメールアドレスとパスワードでログインできます。"
+                );
+              }}
+            >
+              ログインフォームを開く
+            </button>
+          </aside>
+        )}
+
         <section className="lp-hero">
           <div className="lp-hero-copy">
             <p className="lp-brand">myshelf</p>
@@ -234,30 +347,168 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
                 すでにアカウントがある方はログイン
               </button>
             </div>
+
+            <div className="lp-mini-features">
+              <h2 className="lp-mini-features-title">myshelfでできること</h2>
+              <ul className="lp-mini-features-grid">
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="10.5" cy="10.5" r="5.25" />
+                    <path d="m15 15 4.5 4.5" />
+                  </svg>
+                  <span className="lp-mini-feature-label">作品を探す</span>
+                </li>
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect width="8" height="18" x="3" y="3" rx="1" />
+                    <path d="M7 3v18" />
+                    <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" />
+                  </svg>
+                  <span className="lp-mini-feature-label">自分の棚をつくる</span>
+                </li>
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect width="7" height="7" x="3" y="3" rx="1" />
+                    <rect width="7" height="7" x="14" y="3" rx="1" />
+                    <rect width="7" height="7" x="14" y="14" rx="1" />
+                    <rect width="7" height="7" x="3" y="14" rx="1" />
+                  </svg>
+                  <span className="lp-mini-feature-label">棚を整理する</span>
+                </li>
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="8.25" />
+                    <path d="M12 3.75v16.5" />
+                    <path d="M3.75 12h16.5" />
+                    <path d="M6.2 6.2c2 2.4 2.8 5 2.8 5.8s-.8 3.4-2.8 5.8" />
+                    <path d="M17.8 6.2c-2 2.4-2.8 5-2.8 5.8s.8 3.4 2.8 5.8" />
+                  </svg>
+                  <span className="lp-mini-feature-label">棚を公開する</span>
+                </li>
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="8.5" cy="8" r="2.3" />
+                    <circle cx="15.5" cy="8" r="2.3" />
+                    <path d="M4.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+                    <path d="M11.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+                  </svg>
+                  <span className="lp-mini-feature-label">人とつながる</span>
+                </li>
+                <li className="lp-mini-feature">
+                  <svg
+                    className="lp-mini-feature-icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m8 11 2 2 4-4" />
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                  <span className="lp-mini-feature-label">棚を探す</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <ShelfPreview />
+          <div className="lp-hero-visual" aria-label="棚のサンプル">
+            <ShelfPreview />
+          </div>
         </section>
 
         <section className="lp-features">
-          <h2 className="lp-section-title">できること</h2>
           <ul className="lp-feature-list">
             <li>
-              <h3>作品を検索して追加</h3>
-              <p>本・映画・音楽などを検索し、自分の棚へ追加できます。</p>
-            </li>
-            <li>
-              <h3>ジャンルを超えて一つの棚に</h3>
-              <p>違う種類の作品も、ひとつのコレクションとして並べられます。</p>
-            </li>
-            <li>
-              <h3>自分の棚を自由に編集</h3>
-              <p>追加した作品の編集や削除で、棚を自分好みに整えられます。</p>
-            </li>
-            <li>
-              <h3>公開・非公開や他の棚を見る</h3>
+              <h3>作品を探す</h3>
               <p>
-                将来の機能として検討中です。現時点ではまだ利用できません。
+                本・映画・音楽・漫画・ゲームなど、さまざまなジャンルから好きな作品を探せます。
+              </p>
+            </li>
+            <li>
+              <h3>自分の棚をつくる</h3>
+              <p>
+                好きだった作品や忘れられない作品を、ジャンルを超えてひとつの棚に並べられます。
+              </p>
+            </li>
+            <li>
+              <h3>棚を整理する</h3>
+              <p>
+                作品が増えても、ページ分けやジャンル表示で見やすく整理できます。
+              </p>
+            </li>
+            <li>
+              <h3>棚を公開する</h3>
+              <p>自分の棚を公開するか、非公開にするかを自由に選べます。</p>
+            </li>
+            <li>
+              <h3>人とつながる</h3>
+              <p>気になる人をフォローして、お互いの棚を眺められます。</p>
+            </li>
+            <li>
+              <h3>棚を探す</h3>
+              <p>
+                作品名で検索して、その作品を並べている人の公開棚を探せます。
               </p>
             </li>
           </ul>
@@ -296,7 +547,7 @@ export default function LandingPage({ initialAuthMode = null }: LandingPageProps
 
             <p className="lp-auth-lead">
               {authMode === "login"
-                ? "登録済みのメールアドレスでログインできます。"
+                ? "登録済みのメールアドレスでログインできます。メール確認が終わるまではログインできません。"
                 : "新規登録、またはゲストとしてはじめられます。"}
             </p>
 

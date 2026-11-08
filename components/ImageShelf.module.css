@@ -1,0 +1,331 @@
+.root {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.stage {
+  --shelf-w: 1024;
+  --shelf-h: 664;
+  position: relative;
+  width: min(100%, 920px, calc((100dvh - 12rem) * (var(--shelf-w) / var(--shelf-h))));
+  max-height: calc(100dvh - 12rem);
+  aspect-ratio: var(--shelf-w) / var(--shelf-h);
+  margin: 0 auto;
+  overflow: hidden;
+  background: #f5f5f4;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/*
+ * 自然な輪郭・陰影（本番採用）
+ * 座標・幅・高さは変更しない。描画レイヤーのみ。
+ */
+.coverBtn {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  isolation: isolate;
+  border-radius: 1.5px;
+  overflow: visible;
+  filter: none;
+}
+
+.coverBtn:focus-visible {
+  outline: 2px solid #1c1917;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .coverBtn {
+    z-index: 1;
+    transform-origin: center bottom;
+    transition: transform 180ms ease;
+  }
+
+  .coverBtn:hover,
+  .coverBtn:focus-visible {
+    z-index: 4;
+    transform: scale(1.06);
+  }
+
+  /* 選択モードでは拡大ホバーを止め、チェック判定を優先 */
+  .coverSelecting:hover,
+  .coverSelecting:focus-visible {
+    transform: none;
+  }
+}
+
+.coverSelected {
+  z-index: 3;
+  box-shadow: 0 0 0 2px #1c1917;
+}
+
+.coverCheck {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #1c1917;
+  color: #fafaf9;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coverBtn {
+    transition: none;
+  }
+
+  .coverBtn:hover,
+  .coverBtn:focus-visible {
+    transform: none;
+  }
+}
+
+.coverShadow {
+  display: block;
+  position: absolute;
+  left: 3px;
+  top: 1.5px;
+  right: -3px;
+  bottom: -1.5px;
+  z-index: -1;
+  border-radius: 2px;
+  background: rgba(28, 18, 10, 0.28);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.coverNearLed .coverShadow {
+  background: rgba(28, 18, 10, 0.07);
+  filter: blur(2.5px);
+  left: 1px;
+  right: -1px;
+  top: 1px;
+  bottom: -1px;
+}
+
+.coverImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 1.5px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverImgWide.coverImgWide {
+  object-fit: fill;
+  object-position: center bottom;
+}
+
+.coverBtnText {
+  container-type: size;
+}
+
+.coverFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  overflow: hidden;
+  border-radius: 1.5px;
+  background: linear-gradient(160deg, #e7e5e4 0%, #d6d3d1 100%);
+  color: #57534e;
+  font-size: 12cqh;
+  line-height: 1.2;
+  text-align: center;
+  padding: 8% 6%;
+  box-sizing: border-box;
+}
+
+.coverFallbackLabel,
+.coverFallbackGenre,
+.coverFallbackTitle {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.coverFallbackLabel,
+.coverFallbackGenre {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.coverFallbackLabel {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.coverFallbackTitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.coverLight {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 1.5px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 235, 0.16),
+    inset 0 -1px 0 rgba(20, 12, 8, 0.12),
+    inset 1px 0 0 rgba(255, 250, 240, 0.1),
+    inset -1px 0 0 rgba(20, 12, 8, 0.08);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 248, 235, 0.05) 0%,
+    transparent 16%,
+    transparent 84%,
+    rgba(20, 12, 8, 0.04) 100%
+  );
+}
+
+.measure {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fitNote {
+  margin: 0.75rem 0 0;
+  color: #9a3412;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.pagerBtn {
+  appearance: none;
+  border: 1px solid #d6d3d1;
+  background: #fafaf9;
+  color: #292524;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagerBtn:hover:not(:disabled) {
+  background: #f5f5f4;
+  border-color: #a8a29e;
+}
+
+.pagerBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pagerSelectLabel {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+.pagerSelect {
+  appearance: auto;
+  min-width: 5.5rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 4px;
+  background: #fafaf9;
+  color: #292524;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.pagerSelect:focus-visible {
+  outline: 2px solid #1c1917;
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .stage {
+    width: 100%;
+    max-height: none;
+  }
+
+  .pager {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .pagerBtn {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .pagerSelect {
+    min-width: 6rem;
+    font-size: 0.95rem;
+  }
+}

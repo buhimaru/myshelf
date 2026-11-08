@@ -1,0 +1,25 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  align-items: start;
+  max-height: none;
+  overflow: visible;
+}
+
+.grid .stage {
+  max-height: none;
+  overflow: clip;
+  touch-action: pan-y;
+}
+
+.tableWrap.tableWrap {
+  overflow-x: auto;
+  overflow-y: clip;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

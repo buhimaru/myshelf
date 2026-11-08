@@ -8,6 +8,11 @@ import {
   fetchMyProfile,
   updateMyShelfPublic,
 } from "../utils/supabase/profile";
+import {
+  announceShelfSettingsModal,
+  subscribeShelfSettingsModalExclusive,
+} from "../utils/shelfSettingsModalExclusive";
+import ShelfSettingsModal from "./ShelfSettingsModal";
 
 type ShelfVisibilitySettingsProps = {
   user: User;
@@ -103,6 +108,29 @@ export default function ShelfVisibilitySettings({
     };
   }, [user.id]);
 
+  useEffect(() => {
+    return subscribeShelfSettingsModalExclusive("visibility", () => {
+      setPanelOpen(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (panelOpen) {
+      announceShelfSettingsModal("visibility");
+    }
+  }, [panelOpen]);
+
+  const openModal = () => {
+    setSaveMessage("");
+    setSaveError("");
+    setCopyMessage("");
+    setPanelOpen(true);
+  };
+
+  const closeModal = () => {
+    setPanelOpen(false);
+  };
+
   const handleToggle = async (nextPublic: boolean) => {
     if (isAnonymous || saving) return;
 
@@ -143,6 +171,22 @@ export default function ShelfVisibilitySettings({
     }
   };
 
+  const SHARE_TEXT = "私のmyshelfを見てみてください。";
+
+  const handleShareX = () => {
+    const href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      SHARE_TEXT
+    )}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleShareLine = () => {
+    const href = `https://line.me/R/msg/text/?${encodeURIComponent(
+      `${SHARE_TEXT}\n${shareUrl}`
+    )}`;
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
+
   const chipLabel = loading ? "…" : isPublic ? "公開" : "非公開";
 
   return (
@@ -150,130 +194,145 @@ export default function ShelfVisibilitySettings({
       <button
         type="button"
         className={`my-shelf-visibility-chip${isPublic ? " is-public" : " is-private"}${panelOpen ? " is-open" : ""}`}
+        aria-haspopup="dialog"
         aria-expanded={panelOpen}
-        aria-controls="shelf-visibility-panel"
-        onClick={() => setPanelOpen((open) => !open)}
+        onClick={() => {
+          if (panelOpen) {
+            closeModal();
+            return;
+          }
+          openModal();
+        }}
       >
         {isPublic ? <PublicIcon /> : <LockIcon />}
         <span>{chipLabel}</span>
       </button>
 
-      {panelOpen && (
-        <div
-          id="shelf-visibility-panel"
-          className="my-shelf-visibility-panel"
-          role="region"
-          aria-label="棚の公開設定"
-        >
-          <div className="my-shelf-visibility-panel-head">
-            <h2 className="my-shelf-visibility-title">棚の公開設定</h2>
-            <button
-              type="button"
-              className="my-shelf-visibility-close"
-              onClick={() => setPanelOpen(false)}
-            >
-              閉じる
-            </button>
-          </div>
+      <ShelfSettingsModal
+        open={panelOpen}
+        title="棚の公開設定"
+        onClose={closeModal}
+      >
+        {loading && (
+          <p className="my-shelf-visibility-status">読み込み中...</p>
+        )}
 
-          {loading && (
-            <p className="my-shelf-visibility-status">読み込み中...</p>
-          )}
+        {!loading && loadError && <p className="shelf-error">{loadError}</p>}
 
-          {!loading && loadError && <p className="shelf-error">{loadError}</p>}
+        {!loading && !loadError && (
+          <>
+            <p className="my-shelf-visibility-status">
+              現在:{" "}
+              <span
+                className={
+                  isPublic
+                    ? "my-shelf-visibility-badge is-public"
+                    : "my-shelf-visibility-badge is-private"
+                }
+              >
+                {isPublic ? "公開" : "非公開"}
+              </span>
+            </p>
 
-          {!loading && !loadError && (
-            <>
-              <p className="my-shelf-visibility-status">
-                現在:{" "}
-                <span
-                  className={
-                    isPublic
-                      ? "my-shelf-visibility-badge is-public"
-                      : "my-shelf-visibility-badge is-private"
-                  }
-                >
-                  {isPublic ? "公開" : "非公開"}
-                </span>
-              </p>
-
-              {isAnonymous ? (
-                <div className="my-shelf-visibility-anon">
-                  <p className="my-shelf-visibility-note">
-                    ゲスト中は非公開のままです。公開や共有には本登録が必要です。
-                  </p>
-                  {onRequestRegister && (
-                    <button
-                      type="button"
-                      className="my-shelf-text-btn"
-                      onClick={onRequestRegister}
-                    >
-                      正式アカウントに登録
-                    </button>
-                  )}
+            {isAnonymous ? (
+              <div className="my-shelf-visibility-anon">
+                <p className="my-shelf-visibility-note">
+                  ゲスト中は非公開のままです。公開や共有には本登録が必要です。
+                </p>
+                {onRequestRegister && (
+                  <button
+                    type="button"
+                    className="my-shelf-text-btn"
+                    onClick={() => {
+                      closeModal();
+                      onRequestRegister();
+                    }}
+                  >
+                    正式アカウントに登録
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="my-shelf-visibility-actions">
+                  <button
+                    type="button"
+                    className={`my-shelf-visibility-toggle${isPublic ? "" : " is-active"}`}
+                    disabled={saving || !isPublic}
+                    onClick={() => void handleToggle(false)}
+                  >
+                    非公開にする
+                  </button>
+                  <button
+                    type="button"
+                    className={`my-shelf-visibility-toggle${isPublic ? " is-active" : ""}`}
+                    disabled={saving || isPublic}
+                    onClick={() => void handleToggle(true)}
+                  >
+                    公開する
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <div className="my-shelf-visibility-actions">
+
+                {saving && (
+                  <p className="my-shelf-visibility-status">保存中...</p>
+                )}
+                {saveMessage && (
+                  <p className="my-shelf-visibility-success" role="status">
+                    {saveMessage}
+                  </p>
+                )}
+                {saveError && <p className="shelf-error">{saveError}</p>}
+
+                <div className="my-shelf-visibility-share">
+                  <p className="my-shelf-visibility-share-label">共有用リンク</p>
+                  <div className="my-shelf-visibility-share-row">
+                    <input
+                      type="text"
+                      className="my-shelf-visibility-share-input"
+                      value={shareUrl}
+                      readOnly
+                      aria-label="共有用リンク"
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
                     <button
                       type="button"
-                      className={`my-shelf-visibility-toggle${isPublic ? "" : " is-active"}`}
-                      disabled={saving || !isPublic}
-                      onClick={() => void handleToggle(false)}
+                      className="my-shelf-visibility-copy"
+                      onClick={() => void handleCopy()}
                     >
-                      非公開にする
-                    </button>
-                    <button
-                      type="button"
-                      className={`my-shelf-visibility-toggle${isPublic ? " is-active" : ""}`}
-                      disabled={saving || isPublic}
-                      onClick={() => void handleToggle(true)}
-                    >
-                      公開する
+                      コピー
                     </button>
                   </div>
-
-                  {saving && (
-                    <p className="my-shelf-visibility-status">保存中...</p>
-                  )}
-                  {saveMessage && (
+                  <div
+                    className="my-shelf-visibility-share-actions"
+                    role="group"
+                    aria-label="SNSでシェア"
+                  >
+                    <button
+                      type="button"
+                      className="my-shelf-visibility-share-btn"
+                      onClick={handleShareX}
+                    >
+                      Xでシェア
+                    </button>
+                    <button
+                      type="button"
+                      className="my-shelf-visibility-share-btn"
+                      onClick={handleShareLine}
+                    >
+                      LINEでシェア
+                    </button>
+                  </div>
+                  {copyMessage && (
                     <p className="my-shelf-visibility-success" role="status">
-                      {saveMessage}
+                      {copyMessage}
                     </p>
                   )}
-                  {saveError && <p className="shelf-error">{saveError}</p>}
-
-                  <div className="my-shelf-visibility-share">
-                    <p className="my-shelf-visibility-share-label">共有用リンク</p>
-                    <div className="my-shelf-visibility-share-row">
-                      <input
-                        type="text"
-                        className="my-shelf-visibility-share-input"
-                        value={shareUrl}
-                        readOnly
-                        aria-label="共有用リンク"
-                        onFocus={(e) => e.currentTarget.select()}
-                      />
-                      <button
-                        type="button"
-                        className="my-shelf-visibility-copy"
-                        onClick={() => void handleCopy()}
-                      >
-                        コピー
-                      </button>
-                    </div>
-                    {copyMessage && (
-                      <p className="my-shelf-visibility-success" role="status">
-                        {copyMessage}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      )}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </ShelfSettingsModal>
     </>
   );
 }

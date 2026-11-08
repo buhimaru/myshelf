@@ -13,11 +13,30 @@ function normalize(text: string): string {
 }
 
 /**
+ * メール確認リダイレクトの error / error_description を日本語にする。
+ */
+export function formatAuthCallbackErrorMessage(error: {
+  code?: string;
+  description?: string;
+} | null): string {
+  if (!error) {
+    return "メール確認に失敗しました。もう一度お試しください。";
+  }
+  return formatAuthErrorMessage(
+    {
+      message: error.description,
+      code: error.code,
+    },
+    "confirm"
+  );
+}
+
+/**
  * Supabase Auth のエラーを、画面表示用の日本語にする。
  */
 export function formatAuthErrorMessage(
   error: AuthErrorLike,
-  context: "sign_up" | "sign_in" | "update" = "update"
+  context: "sign_up" | "sign_in" | "update" | "confirm" = "update"
 ): string {
   const message = error?.message?.trim() ?? "";
   const code = error?.code?.trim().toLowerCase() ?? "";
@@ -49,6 +68,24 @@ export function formatAuthErrorMessage(
   }
 
   if (
+    code === "otp_expired" ||
+    lower.includes("otp_expired") ||
+    lower.includes("email link is invalid or has expired") ||
+    lower.includes("token has expired") ||
+    lower.includes("link is invalid or has expired")
+  ) {
+    return "確認リンクの有効期限が切れているか、すでに使用されています。もう一度新規登録から確認メールを送信してください。";
+  }
+
+  if (
+    code === "access_denied" ||
+    lower.includes("access_denied") ||
+    lower.includes("email link is invalid")
+  ) {
+    return "メール確認リンクが無効です。もう一度新規登録から確認メールを送信してください。";
+  }
+
+  if (
     lower.includes("password should be at least") ||
     lower.includes("password is too short") ||
     code === "weak_password"
@@ -76,6 +113,9 @@ export function formatAuthErrorMessage(
   if (!message) {
     if (context === "sign_in") return "ログインに失敗しました。入力内容を確認してください。";
     if (context === "sign_up") return "新規登録に失敗しました。入力内容を確認してください。";
+    if (context === "confirm") {
+      return "メール確認に失敗しました。リンクの有効期限を確認するか、もう一度登録からやり直してください。";
+    }
     return "アカウント登録に失敗しました。入力内容を確認してください。";
   }
 
@@ -86,6 +126,9 @@ export function formatAuthErrorMessage(
     }
     if (context === "sign_up") {
       return "新規登録に失敗しました。入力内容を確認するか、しばらくしてから再度お試しください。";
+    }
+    if (context === "confirm") {
+      return "メール確認に失敗しました。リンクの有効期限を確認するか、もう一度登録からやり直してください。";
     }
     return "アカウント登録に失敗しました。入力内容を確認するか、しばらくしてから再度お試しください。";
   }

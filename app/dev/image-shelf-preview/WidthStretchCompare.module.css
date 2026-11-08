@@ -1,0 +1,18 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.35rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.stage {
+  max-height: none;
+  overflow: clip;
+  touch-action: pan-y;
+}
+
+.stretchImg.stretchImg {
+  object-fit: fill;
+  object-position: center bottom;
+}

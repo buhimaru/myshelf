@@ -12,8 +12,13 @@ import {
   rejectFollowRequest,
 } from "../utils/supabase/follow";
 import { fetchMyProfile } from "../utils/supabase/profile";
+import {
+  announceShelfSettingsModal,
+  subscribeShelfSettingsModalExclusive,
+} from "../utils/shelfSettingsModalExclusive";
 import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
+import ShelfSettingsModal from "./ShelfSettingsModal";
 
 type ShelfFollowRequestsProps = {
   user: User;
@@ -108,6 +113,18 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
     };
   }, [supabase, user.id]);
 
+  useEffect(() => {
+    return subscribeShelfSettingsModalExclusive("follow-requests", () => {
+      setPanelOpen(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (panelOpen) {
+      announceShelfSettingsModal("follow-requests");
+    }
+  }, [panelOpen]);
+
   useFollowsSync(
     supabase,
     user.id,
@@ -130,13 +147,10 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
     request: PendingFollowRequest,
     message: string
   ) => {
-    const remaining = requests.filter((item) => item.id !== request.id).length;
     removeRequestLocally(request.id);
     showSuccessToast(message);
     setActionId(null);
-    if (remaining === 0) {
-      setPanelOpen(false);
-    }
+    // 成功トーストはモーダル内に表示するため、自動では閉じない
     notifyFollowsChanged();
     void refresh();
   };
@@ -209,100 +223,91 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
         <button
           type="button"
           className={`my-shelf-visibility-chip shelf-follow-requests-chip${count > 0 ? " has-requests" : ""}${panelOpen ? " is-open" : ""}`}
+          aria-haspopup="dialog"
           aria-expanded={panelOpen}
-          aria-controls="shelf-follow-requests-panel"
           onClick={() => {
-            const next = !panelOpen;
-            setPanelOpen(next);
-            if (next) {
-              setActionError("");
-              void refresh({ showLoading: true });
+            if (panelOpen) {
+              setPanelOpen(false);
+              return;
             }
+            setActionError("");
+            setPanelOpen(true);
+            void refresh({ showLoading: true });
           }}
         >
           <span>申請{count > 0 ? ` ${count}` : ""}</span>
         </button>
       )}
 
-      {panelOpen && (
-        <div
-          id="shelf-follow-requests-panel"
-          className="my-shelf-visibility-panel shelf-follow-requests-panel"
-          role="region"
-          aria-label="フォロー申請"
-        >
-          <div className="my-shelf-visibility-panel-head">
-            <h2 className="my-shelf-visibility-title">フォロー申請</h2>
+      <ShelfSettingsModal
+        open={panelOpen}
+        title="フォロー申請"
+        onClose={() => setPanelOpen(false)}
+        className="shelf-follow-requests-modal"
+      >
+        <p className="shelf-panel-lead">
+          届いたフォロー申請を承認または拒否できます。
+        </p>
+
+        {loading && (
+          <p className="my-shelf-visibility-status">読み込み中...</p>
+        )}
+
+        {!loading && loadError && <p className="shelf-error">{loadError}</p>}
+
+        {!loading && !loadError && requests.length === 0 && (
+          <p className="my-shelf-visibility-note">未処理の申請はありません。</p>
+        )}
+
+        {!loading && !loadError && requests.length > 0 && (
+          <ul className="shelf-follow-requests-list">
+            {requests.map((request) => (
+              <li key={request.id} className="shelf-follow-requests-item">
+                <div className="shelf-follow-requests-meta">
+                  <p className="shelf-follow-requests-name">{request.label}</p>
+                </div>
+                <div className="shelf-follow-requests-actions">
+                  <button
+                    type="button"
+                    className="shelf-follow-requests-accept"
+                    disabled={Boolean(actionId)}
+                    onClick={() => void handleAccept(request)}
+                  >
+                    {actionId === request.id ? "処理中..." : "承認"}
+                  </button>
+                  <button
+                    type="button"
+                    className="shelf-follow-requests-reject"
+                    disabled={Boolean(actionId)}
+                    onClick={() => void handleReject(request)}
+                  >
+                    拒否
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {actionError && <p className="shelf-error">{actionError}</p>}
+
+        {actionMessage && (
+          <p
+            className="shelf-ui-toast my-shelf-visibility-success"
+            role="status"
+          >
+            {actionMessage}
             <button
               type="button"
-              className="my-shelf-visibility-close"
-              onClick={() => setPanelOpen(false)}
+              className="shelf-ui-toast-dismiss"
+              aria-label="通知を閉じる"
+              onClick={clearSuccessToast}
             >
-              閉じる
+              ×
             </button>
-          </div>
-
-          <p className="shelf-panel-lead">
-            届いたフォロー申請を承認または拒否できます。
           </p>
-
-          {loading && (
-            <p className="my-shelf-visibility-status">読み込み中...</p>
-          )}
-
-          {!loading && loadError && <p className="shelf-error">{loadError}</p>}
-
-          {!loading && !loadError && requests.length === 0 && (
-            <p className="my-shelf-visibility-note">未処理の申請はありません。</p>
-          )}
-
-          {!loading && !loadError && requests.length > 0 && (
-            <ul className="shelf-follow-requests-list">
-              {requests.map((request) => (
-                <li key={request.id} className="shelf-follow-requests-item">
-                  <div className="shelf-follow-requests-meta">
-                    <p className="shelf-follow-requests-name">{request.label}</p>
-                  </div>
-                  <div className="shelf-follow-requests-actions">
-                    <button
-                      type="button"
-                      className="shelf-follow-requests-accept"
-                      disabled={Boolean(actionId)}
-                      onClick={() => void handleAccept(request)}
-                    >
-                      {actionId === request.id ? "処理中..." : "承認"}
-                    </button>
-                    <button
-                      type="button"
-                      className="shelf-follow-requests-reject"
-                      disabled={Boolean(actionId)}
-                      onClick={() => void handleReject(request)}
-                    >
-                      拒否
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {actionError && <p className="shelf-error">{actionError}</p>}
-        </div>
-      )}
-
-      {actionMessage && (
-        <p className="shelf-ui-toast my-shelf-visibility-success" role="status">
-          {actionMessage}
-          <button
-            type="button"
-            className="shelf-ui-toast-dismiss"
-            aria-label="通知を閉じる"
-            onClick={clearSuccessToast}
-          >
-            ×
-          </button>
-        </p>
-      )}
+        )}
+      </ShelfSettingsModal>
     </div>
   );
 }

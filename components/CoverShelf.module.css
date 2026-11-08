@@ -38,6 +38,27 @@
   --back: #5a4638;
   --joint: rgba(28, 16, 8, 0.35);
   --shadow: rgba(28, 16, 8, 0.32);
+  --lip: #7a5340;
+  --lip-face: #3f291c;
+  --plank-top: #6d4b34;
+  --plank-front: #3a261b;
+  --plank-seam: rgba(16, 8, 4, 0.7);
+  --recess: rgba(8, 4, 2, 0.5);
+  --bay-shade: rgba(6, 3, 1, 0.42);
+  --cast: rgba(8, 4, 2, 0.22);
+  --contact: rgba(6, 3, 1, 0.5);
+  --cabinet-back: #3a281e;
+  --back-center: #4a3428;
+  --edge-light: rgba(255, 214, 170, 0.28);
+  --stile-front: #5c3e2c;
+  --stile-front-dim: #4a3122;
+  --stile-inner: #24160f;
+  --stile-inner-lit: #3a261c;
+  --stile-joint: #120c08;
+  --top-under: #1c100c;
+  --top-under-lit: #2e1c14;
+  --plank-under: #140c08;
+  --joint-soft: rgba(8, 4, 2, 0.45);
 }
 
 .oak {
@@ -51,6 +72,27 @@
   --back: #f4efe6;
   --joint: rgba(92, 62, 32, 0.16);
   --shadow: rgba(92, 62, 32, 0.24);
+  --lip: #d4b48c;
+  --lip-face: #a87a4e;
+  --plank-top: #c9a67a;
+  --plank-front: #a67a4c;
+  --plank-seam: rgba(74, 46, 24, 0.6);
+  --recess: rgba(54, 32, 14, 0.34);
+  --bay-shade: rgba(54, 32, 14, 0.22);
+  --cast: rgba(54, 32, 14, 0.14);
+  --contact: rgba(42, 24, 12, 0.36);
+  --cabinet-back: #8f6844;
+  --back-center: #c9a67a;
+  --edge-light: rgba(255, 214, 170, 0.55);
+  --stile-front: #c4a078;
+  --stile-front-dim: #b89268;
+  --stile-inner: #6a4a32;
+  --stile-inner-lit: #866246;
+  --stile-joint: #4a3020;
+  --top-under: #4a3020;
+  --top-under-lit: #6a4a34;
+  --plank-under: #5a3c28;
+  --joint-soft: rgba(74, 48, 28, 0.32);
 }
 
 .blackOak {
@@ -483,4 +525,636 @@
   .open:focus-visible .face {
     transform: none;
   }
+}
+
+/* 手前は縦枠、中間は天板と棚板、奥は背板。細いのは前面の縁だけ */
+.cabinet .back {
+  top: 12px;
+  background:
+    linear-gradient(180deg, transparent 6px, var(--recess) 14px, transparent 42px),
+    linear-gradient(
+      90deg,
+      rgba(48, 28, 14, 0.42),
+      transparent 26px,
+      transparent calc(100% - 16px),
+      rgba(48, 28, 14, 0.16)
+    ),
+    linear-gradient(180deg, transparent 55%, var(--bay-shade)),
+    var(--back-center);
+  box-shadow:
+    inset 0 12px 10px -10px var(--recess),
+    inset 6px 0 8px -6px var(--bay-shade),
+    inset -4px 0 7px -6px rgba(62, 40, 18, 0.12);
+}
+
+.cabinet .side {
+  width: 8px;
+  background-color: var(--stile-front);
+  background-blend-mode: normal;
+}
+
+.cabinet .sideLeft {
+  background-image: linear-gradient(
+    90deg,
+    var(--edge-light) 0 1px,
+    var(--stile-front) 1px 4px,
+    var(--stile-inner) 4px
+  );
+  box-shadow: none;
+}
+
+.cabinet .sideRight {
+  background-image: linear-gradient(
+    90deg,
+    var(--stile-inner-lit) 0 4px,
+    var(--stile-front-dim) 4px 7px,
+    rgba(62, 40, 18, 0.2) 7px
+  );
+  box-shadow: none;
+}
+
+.cabinet .top {
+  right: 8px;
+  left: 8px;
+  height: 8px;
+  background-color: var(--lip);
+  background-image: linear-gradient(
+    180deg,
+    var(--edge-light),
+    transparent 40%,
+    rgba(74, 46, 24, 0.16)
+  );
+  background-blend-mode: normal;
+  box-shadow:
+    inset 0 1px 0 var(--edge-light),
+    inset 3px 0 2px -2px var(--stile-joint),
+    inset -2px 0 2px -2px var(--joint-soft);
+}
+
+.cabinet .top::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--top-under), var(--top-under-lit));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 8px 100%);
+}
+
+.cabinet .top::after {
+  height: 4px;
+  background: linear-gradient(180deg, var(--edge-light) 0 1px, var(--lip-face) 1px);
+  box-shadow: none;
+}
+
+.cabinet .row::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 6px;
+  left: 0;
+  height: 18px;
+  background: linear-gradient(180deg, transparent, var(--bay-shade));
+  pointer-events: none;
+}
+
+.cabinet .items {
+  padding-bottom: 6px;
+}
+
+.cabinet .plank {
+  right: -4px;
+  left: -4px;
+  height: 6px;
+  background-color: var(--plank-top);
+  background-image:
+    linear-gradient(90deg, var(--stile-joint) 0 3px, transparent 16px),
+    linear-gradient(270deg, var(--joint-soft) 0 3px, transparent 14px),
+    linear-gradient(180deg, rgba(74, 46, 24, 0.2), var(--plank-top) 46%, var(--edge-light));
+  background-blend-mode: normal;
+  box-shadow: none;
+}
+
+.cabinet .plank::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--plank-seam);
+}
+
+.cabinet .plank::after {
+  height: 12px;
+  background:
+    linear-gradient(90deg, var(--stile-joint) 0 3px, transparent 16px),
+    linear-gradient(270deg, var(--joint-soft) 0 3px, transparent 14px),
+    linear-gradient(
+      180deg,
+      var(--edge-light) 0 1px,
+      var(--plank-front) 1px 7px,
+      var(--plank-under)
+    );
+  box-shadow: 0 4px 5px -4px var(--contact);
+}
+
+.cabinet .face,
+.cabinet.bodied .face {
+  box-shadow:
+    1px 2px 3px var(--cast),
+    0 1px 0 var(--contact);
+}
+
+/* 各段の内部空間。枠と棚板の寸法は変えない */
+.cabinet.interior .back {
+  background: var(--back-center);
+  box-shadow: none;
+}
+
+.cabinet.interior .row::before {
+  top: calc(12px - 1.85rem);
+  bottom: 6px;
+  height: auto;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(28, 16, 8, 0.82) 0%,
+      rgba(28, 16, 8, 0.5) 30%,
+      rgba(28, 16, 8, 0.16) 58%,
+      transparent 80%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(28, 16, 8, 0.74) 0%,
+      rgba(28, 16, 8, 0.28) 16%,
+      transparent 40%,
+      transparent 64%,
+      rgba(28, 16, 8, 0.18) 84%,
+      rgba(28, 16, 8, 0.58) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(20, 10, 6, 0.8) 0px,
+      rgba(20, 10, 6, 0.36) 24px,
+      transparent 52px
+    );
+}
+
+/* 立体の接合。部材の寸法は家具の奥行きと同じ。面の色と影だけを変える。 */
+.oak.cabinet.structure {
+  --stile-front: #e8cba6;
+  --stile-front-dim: #d2b08a;
+  --stile-inner: #7a4e30;
+  --stile-inner-lit: #9a6844;
+  --stile-joint: #3d2616;
+  --edge-light: rgba(255, 244, 226, 0.95);
+  --lip: #f0d4b0;
+  --lip-face: #c4925c;
+  --top-under: #5c3a24;
+  --top-under-lit: #8a5a38;
+  --plank-top: #f2d4ae;
+  --plank-front: #c89058;
+  --plank-under: #6e452c;
+  --plank-seam: rgba(62, 36, 16, 0.72);
+  --structure-back: #e0c29a;
+  --stile-return: #8d5c38;
+  --stile-return-lit: #c49260;
+  --joint-soft: rgba(62, 34, 16, 0.4);
+}
+
+.walnut.cabinet.structure {
+  --structure-back: #4a3428;
+  --stile-inner: #1a100c;
+  --stile-return: #2a1a12;
+  --stile-return-lit: #4a3020;
+  --top-under: #140c08;
+  --plank-top: #6a4832;
+  --plank-front: #3a261c;
+  --plank-under: #1c100c;
+}
+
+.cabinet.structure .back {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(48, 24, 10, 0.55) 0px,
+      rgba(48, 24, 10, 0.18) 18px,
+      transparent 48px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(42, 22, 10, 0.34) 0px,
+      transparent 56px,
+      transparent calc(100% - 40px),
+      rgba(42, 22, 10, 0.16)
+    ),
+    var(--structure-back);
+  box-shadow: none;
+}
+
+.cabinet.structure .sideLeft {
+  background-image: linear-gradient(
+    90deg,
+    var(--edge-light) 0 1px,
+    var(--stile-front) 1px 4px,
+    var(--stile-joint) 4px 5px,
+    var(--stile-inner-lit) 5px 7px,
+    var(--stile-inner) 7px
+  );
+}
+
+.cabinet.structure .sideRight {
+  background-image: linear-gradient(
+    90deg,
+    #b88858 0 2px,
+    var(--stile-inner-lit) 2px 4px,
+    var(--stile-joint) 4px 5px,
+    var(--stile-front-dim) 5px 7px,
+    rgba(90, 58, 32, 0.35) 7px
+  );
+}
+
+.cabinet.structure .top::before {
+  height: 6px;
+  background:
+    linear-gradient(180deg, rgba(28, 14, 6, 0.9) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 14, 6, 0.55) 0px, transparent 36px),
+    linear-gradient(270deg, rgba(28, 14, 6, 0.28) 0px, transparent 28px),
+    linear-gradient(180deg, var(--top-under) 0px, var(--top-under-lit) 100%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 16px 100%);
+}
+
+.cabinet.structure .sideLeft::before,
+.cabinet.structure .sideRight::before,
+.cabinet.structure .sideLeft::after,
+.cabinet.structure .sideRight::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  width: 16px;
+  height: 5px;
+  pointer-events: none;
+}
+
+.cabinet.structure .sideLeft::before,
+.cabinet.structure .sideLeft::after {
+  left: 8px;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.cabinet.structure .sideLeft::before {
+  background: linear-gradient(200deg, var(--stile-inner) 0%, var(--stile-inner-lit) 78%);
+}
+
+.cabinet.structure .sideLeft::after {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.7px),
+    rgba(28, 14, 6, 0.92) calc(50% - 0.7px) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+.cabinet.structure .sideRight::before,
+.cabinet.structure .sideRight::after {
+  right: 8px;
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}
+
+.cabinet.structure .sideRight::before {
+  background: linear-gradient(160deg, var(--stile-return) 0%, var(--stile-return-lit) 80%);
+}
+
+.cabinet.structure .sideRight::after {
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 0.7px),
+    rgba(28, 14, 6, 0.55) calc(50% - 0.7px) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+.cabinet.structure .top::after {
+  box-shadow: 0 7px 6px -3px rgba(48, 24, 10, 0.5);
+}
+
+.cabinet.structure .row::before {
+  top: 0;
+  bottom: 6px;
+  height: auto;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(42, 22, 10, 0.78) 0px,
+      rgba(42, 22, 10, 0.4) 12px,
+      rgba(42, 22, 10, 0.14) 32px,
+      transparent 58px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(36, 18, 8, 0.66) 0%,
+      rgba(36, 18, 8, 0.24) 5%,
+      transparent 16%,
+      transparent 88%,
+      rgba(36, 18, 8, 0.1) 95%,
+      rgba(36, 18, 8, 0.34) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(36, 18, 8, 0.58) 0px,
+      rgba(36, 18, 8, 0.2) 14px,
+      transparent 32px
+    );
+}
+
+.cabinet.structure .row:nth-child(2)::before {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(42, 22, 10, 0.62) 0px,
+      rgba(42, 22, 10, 0.22) 18px,
+      transparent 46px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(36, 18, 8, 0.5) 0%,
+      transparent 18%,
+      transparent 86%,
+      rgba(36, 18, 8, 0.24) 100%
+    ),
+    linear-gradient(0deg, rgba(36, 18, 8, 0.42) 0px, transparent 24px);
+}
+
+.cabinet.structure .row:nth-child(3)::before {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(42, 22, 10, 0.7) 0px,
+      rgba(42, 22, 10, 0.28) 14px,
+      transparent 52px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(36, 18, 8, 0.58) 0%,
+      transparent 14%,
+      transparent 90%,
+      rgba(36, 18, 8, 0.22) 100%
+    ),
+    linear-gradient(0deg, rgba(36, 18, 8, 0.5) 0px, transparent 28px);
+}
+
+.cabinet.structure .row:nth-child(4)::before {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(42, 22, 10, 0.84) 0px,
+      rgba(42, 22, 10, 0.36) 16px,
+      rgba(42, 22, 10, 0.1) 40px,
+      transparent 64px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(36, 18, 8, 0.7) 0%,
+      rgba(36, 18, 8, 0.2) 6%,
+      transparent 20%,
+      transparent 84%,
+      rgba(36, 18, 8, 0.28) 100%
+    ),
+    linear-gradient(0deg, rgba(36, 18, 8, 0.64) 0px, transparent 36px);
+}
+
+.cabinet.structure .plank {
+  background-color: var(--plank-top);
+  background-image:
+    linear-gradient(180deg, rgba(48, 26, 12, 0.55) 0 1px, transparent 1px),
+    linear-gradient(90deg, var(--stile-joint) 0 2px, transparent 12px),
+    linear-gradient(270deg, rgba(62, 34, 16, 0.4) 0 2px, transparent 10px),
+    linear-gradient(180deg, #f8e2c4 0px, var(--plank-top) 100%);
+  background-blend-mode: normal;
+}
+
+.cabinet.structure .plank::after {
+  background:
+    linear-gradient(90deg, var(--stile-joint) 0 2px, transparent 12px),
+    linear-gradient(270deg, rgba(62, 34, 16, 0.35) 0 2px, transparent 10px),
+    linear-gradient(
+      180deg,
+      rgba(255, 246, 230, 0.95) 0 1px,
+      var(--plank-front) 1px 5px,
+      #8d5c36 5px 8px,
+      var(--plank-under) 8px
+    );
+  box-shadow:
+    0 10px 0 rgba(42, 22, 10, 0.46),
+    0 26px 12px -8px rgba(42, 22, 10, 0.42);
+}
+
+.cabinet.structure .face,
+.cabinet.structure.bodied .face {
+  box-shadow:
+    6px 8px 9px rgba(48, 26, 12, 0.4),
+    2px 3px 2px rgba(48, 26, 12, 0.22),
+    0 3px 1px -1px rgba(28, 14, 6, 0.8);
+}
+
+/* 視点の遠近。中央の横板を目の高さにし、上は下面、下は上面が見える。 */
+.oak.cabinet.viewpoint {
+  --view-back: #d7b58c;
+  --stile-front: #e8c99a;
+  --stile-front-dim: #d2b184;
+  --stile-inner: #8d5a34;
+  --stile-inner-lit: #b07a48;
+  --stile-joint: #5c3a22;
+  --edge-light: rgba(255, 246, 230, 0.9);
+  --lip: #f6e0c0;
+  --lip-face: #c89050;
+  --top-wood: #744628;
+  --plank-deck: #f8e6c6;
+  --plank-front: #c4894e;
+  --plank-under: #694028;
+}
+
+.walnut.cabinet.viewpoint {
+  --view-back: #4a3428;
+  --stile-front: #6a4834;
+  --stile-front-dim: #543828;
+  --stile-inner: #24160f;
+  --stile-inner-lit: #3a261c;
+  --stile-joint: #140c08;
+  --lip: #6a4834;
+  --lip-face: #4a3020;
+  --top-wood: #1c100c;
+  --plank-deck: #7a5438;
+  --plank-front: #4a3022;
+  --plank-under: #24160f;
+}
+
+.cabinet.viewpoint.framed {
+  padding-top: calc(var(--board-front) + var(--board-under) + 4px);
+}
+
+.cabinet.viewpoint .back {
+  top: var(--board-front);
+  background: var(--view-back);
+  box-shadow: none;
+}
+
+.cabinet.viewpoint .side {
+  width: 16px;
+}
+
+.cabinet.viewpoint .sideLeft {
+  left: -8px;
+  background-image: linear-gradient(
+    90deg,
+    var(--edge-light) 0 1px,
+    var(--stile-front) 1px 9px,
+    var(--stile-joint) 9px 10px,
+    var(--stile-inner-lit) 10px 13px,
+    var(--stile-inner) 13px
+  );
+}
+
+.cabinet.viewpoint .sideRight {
+  right: -8px;
+  background-image: linear-gradient(
+    90deg,
+    var(--stile-inner-lit) 0 3px,
+    var(--stile-inner) 3px 6px,
+    var(--stile-joint) 6px 7px,
+    var(--stile-front-dim) 7px 15px,
+    rgba(90, 58, 32, 0.28) 15px
+  );
+}
+
+.cabinet.viewpoint .top {
+  height: var(--board-front);
+  background-color: var(--lip);
+  background-image: linear-gradient(
+    180deg,
+    var(--edge-light) 0 1px,
+    var(--lip) 1px 40%,
+    var(--lip-face)
+  );
+  box-shadow: none;
+}
+
+.cabinet.viewpoint .top::after {
+  content: none;
+}
+
+.cabinet.viewpoint .top::before {
+  top: 100%;
+  height: var(--board-under);
+  background: linear-gradient(180deg, var(--lip-face) 0 4px, var(--top-wood));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 22px 100%);
+}
+
+.cabinet.viewpoint .sideLeft::before,
+.cabinet.viewpoint .sideRight::before {
+  content: "";
+  position: absolute;
+  top: var(--board-front);
+  width: 22px;
+  height: var(--board-under);
+  pointer-events: none;
+}
+
+.cabinet.viewpoint .sideLeft::before {
+  left: 16px;
+  background: linear-gradient(200deg, var(--stile-inner), var(--stile-inner-lit));
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.cabinet.viewpoint .sideRight::before {
+  right: 16px;
+  background: linear-gradient(160deg, var(--stile-inner), var(--stile-inner-lit));
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}
+
+.cabinet.viewpoint .sideLeft::after,
+.cabinet.viewpoint .sideRight::after {
+  content: "";
+  position: absolute;
+  top: var(--board-front);
+  width: 22px;
+  height: var(--board-under);
+  pointer-events: none;
+}
+
+.cabinet.viewpoint .sideLeft::after {
+  left: 16px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.8px),
+    var(--stile-joint) calc(50% - 0.8px) calc(50% + 0.6px),
+    transparent calc(50% + 0.6px)
+  );
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.cabinet.viewpoint .sideRight::after {
+  right: 16px;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 0.8px),
+    var(--stile-joint) calc(50% - 0.8px) calc(50% + 0.6px),
+    transparent calc(50% + 0.6px)
+  );
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}
+
+.cabinet.viewpoint .row::before {
+  content: none;
+}
+
+.cabinet.viewpoint .items {
+  padding-bottom: calc(var(--board-deck, 0px) + var(--board-front));
+}
+
+.cabinet.viewpoint .plank {
+  right: -6px;
+  left: -6px;
+  height: var(--board-front);
+  background-color: var(--plank-front);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 246, 230, 0.7) 0 1px,
+    var(--plank-front) 1px
+  );
+  background-blend-mode: normal;
+  box-shadow: none;
+}
+
+.cabinet.viewpoint .plank::before {
+  content: none;
+}
+
+.cabinet.viewpoint .plank::after {
+  height: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cabinet.viewpoint .plank.deckOn {
+  height: calc(var(--board-deck) + var(--board-front));
+  background-image: linear-gradient(
+    180deg,
+    var(--plank-deck) 0 var(--board-deck),
+    rgba(255, 246, 230, 0.85) var(--board-deck) calc(var(--board-deck) + 1px),
+    var(--plank-front) calc(var(--board-deck) + 1px)
+  );
+}
+
+.cabinet.viewpoint .plank.underOn::after {
+  height: var(--board-under);
+  background: linear-gradient(180deg, var(--plank-front) 0 3px, var(--plank-under));
+}
+
+.cabinet.viewpoint .face,
+.cabinet.viewpoint.bodied .face {
+  box-shadow: 0 1px 0 rgba(62, 38, 16, 0.2);
 }

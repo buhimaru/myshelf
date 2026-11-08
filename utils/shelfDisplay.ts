@@ -25,7 +25,7 @@ export const DISPLAY_NAME_MIN_LENGTH = 1;
 export const DISPLAY_NAME_MAX_LENGTH = 30;
 
 /**
- * 紹介文の保存上限。
+ * 自由記入欄の保存上限。
  * 本番の public.items.description は text・NULL可・デフォルトNULL。
  * 列自体に文字数制約はない前提で、入力はアプリ側で 1000 文字までに限る。空欄は null。
  */
@@ -39,7 +39,7 @@ export function normalizeDescriptionInput(
   if (value.length > DESCRIPTION_MAX_LENGTH) {
     return {
       ok: false,
-      error: `紹介文は${DESCRIPTION_MAX_LENGTH}文字以内で入力してください`,
+      error: `自由記入欄は${DESCRIPTION_MAX_LENGTH}文字以内で入力してください`,
     };
   }
   return { ok: true, value };
@@ -135,6 +135,34 @@ export function mapDbItemToMediaItem(row: {
     description: readDescription(row.description),
     createdAt: row.created_at ?? undefined,
   };
+}
+
+/** 追加順。同時刻は id で固定し、再読み込み後も同じ並びにする */
+export function compareShelfAdditionOrder(a: MediaItem, b: MediaItem): number {
+  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  if (dateA !== dateB) return dateA - dateB;
+  return a.id.localeCompare(b.id);
+}
+
+/** 画像棚の表示順。検索・カテゴリで絞ったあとも、追加順のまま前へ詰める */
+export function filterShelfItemsInAdditionOrder(
+  items: MediaItem[],
+  options: { searchQuery: string; categoryFilter: string }
+): MediaItem[] {
+  const query = options.searchQuery.trim().toLowerCase();
+  return [...items]
+    .filter(
+      (item) =>
+        options.categoryFilter === "all" || item.type === options.categoryFilter
+    )
+    .filter(
+      (item) =>
+        !query ||
+        item.title.toLowerCase().includes(query) ||
+        (item.creator ?? "").toLowerCase().includes(query)
+    )
+    .sort(compareShelfAdditionOrder);
 }
 
 export function filterAndSortShelfItems(

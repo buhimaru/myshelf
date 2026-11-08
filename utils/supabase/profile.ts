@@ -67,8 +67,24 @@ export async function updateMyDisplayName(
 }
 
 export function buildShelfShareUrl(userId: string, origin?: string): string {
-  const base =
-    origin ??
-    (typeof window !== "undefined" ? window.location.origin : "");
+  // 明示 origin > NEXT_PUBLIC_SITE_URL > 現在の origin（本番では正しい公開URLになる）
+  let configuredOrigin = "";
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    try {
+      const url = new URL(
+        configured.includes("://") ? configured : `https://${configured}`
+      );
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        configuredOrigin = url.origin;
+      }
+    } catch {
+      configuredOrigin = "";
+    }
+  }
+
+  const runtimeOrigin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  const base = origin || configuredOrigin || runtimeOrigin;
   return `${base}/shelf/${userId}`;
 }

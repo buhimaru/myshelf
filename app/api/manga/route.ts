@@ -7,6 +7,12 @@
  * - 本番利用前に楽天の利用規約・画像利用条件の確認が必要
  */
 import { NextResponse } from "next/server";
+import {
+  buildCandidatePrefixQuery,
+  buildNotationRetryQueries,
+  compactTitleKey,
+  titlesMatchCompact,
+} from "../../../utils/searchNotation";
 
 const RAKUTEN_BOOKS_TOTAL_SEARCH_URL =
   "https://openapi.rakuten.co.jp/services/api/BooksTotal/Search/20170404";
@@ -95,6 +101,7 @@ function normalizeAuthor(author: string): string {
 function normalizeSeriesTitle(title: string): string {
   return title
     .normalize("NFKC")
+    .replace(/[\u30FB\uFF65\u00B7\u2022\u2219]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
@@ -221,7 +228,8 @@ function scoreAgainstQuery(seriesTitle: string, query: string): number {
   if (!q || !t) return 0;
 
   let score = 0;
-  if (t === q) score += 200;
+  if (compactTitleKey(seriesTitle) === compactTitleKey(query)) score += 200;
+  else if (t === q) score += 200;
   if (t.startsWith(q)) score += 80;
   if (t.includes(q)) score += 40;
 
@@ -391,97 +399,147 @@ export async function GET(request: Request) {
     );
   }
 
-  const url = new URL(RAKUTEN_BOOKS_TOTAL_SEARCH_URL);
-  url.searchParams.set("applicationId", applicationId);
-  url.searchParams.set("accessKey", accessKey);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("formatVersion", "2");
-  url.searchParams.set("keyword", query);
-  url.searchParams.set("booksGenreId", MANGA_GENRE_ID);
-  url.searchParams.set("hits", "30");
-  url.searchParams.set("page", "1");
-  url.searchParams.set("outOfStockFlag", "1");
-  url.searchParams.set("sort", "standard");
+  const fetchMangaItems = async (
+    keyword: string
+  ): Promise<
+    | { ok: true; items: RakutenBookItem[] }
+    | { ok: false; response: NextResponse }
+  > => {
+    const url = new URL(RAKUTEN_BOOKS_TOTAL_SEARCH_URL);
+    url.searchParams.set("applicationId", applicationId);
+    url.searchParams.set("accessKey", accessKey);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("formatVersion", "2");
+    url.searchParams.set("keyword", keyword);
+    url.searchParams.set("booksGenreId", MANGA_GENRE_ID);
+    url.searchParams.set("hits", "30");
+    url.searchParams.set("page", "1");
+    url.searchParams.set("outOfStockFlag", "1");
+    url.searchParams.set("sort", "standard");
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        Origin: RAKUTEN_REQUEST_ORIGIN,
-      },
-    });
-
-    const rawText = await response.text();
-    let data: {
-      Items?: RakutenBookItem[];
-      error?: string;
-      error_description?: string;
-    } = {};
-
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      data = rawText ? (JSON.parse(rawText) as typeof data) : {};
-    } catch {
-      console.error("漫画検索: JSONパース失敗", rawText.slice(0, 200));
-      return NextResponse.json(
-        { results: [], error: "漫画検索に失敗しました" },
-        { status: 502 }
-      );
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      console.error("漫画検索: 認証エラー");
-      return NextResponse.json(
-        { results: [], error: "漫画検索に失敗しました" },
-        { status: 502 }
-      );
-    }
-
-    if (response.status === 429) {
-      console.error("漫画検索: レート制限");
-      return NextResponse.json(
-        {
-          results: [],
-          error:
-            "リクエストが多すぎます。しばらくしてから再試行してください",
+      const response = await fetch(url, {
+        signal: controller.signal,
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Origin: RAKUTEN_REQUEST_ORIGIN,
         },
-        { status: 429 }
-      );
+      });
+
+      const rawText = await response.text();
+      let data: {
+        Items?: RakutenBookItem[];
+        error?: string;
+        error_description?: string;
+      } = {};
+
+      try {
+        data = rawText ? (JSON.parse(rawText) as typeof data) : {};
+      } catch {
+        console.error("漫画検索: JSONパース失敗", rawText.slice(0, 200));
+        return {
+          ok: false,
+          response: NextResponse.json(
+            { results: [], error: "漫画検索に失敗しました" },
+            { status: 502 }
+          ),
+        };
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        console.error("漫画検索: 認証エラー");
+        return {
+          ok: false,
+          response: NextResponse.json(
+            { results: [], error: "漫画検索に失敗しました" },
+            { status: 502 }
+          ),
+        };
+      }
+
+      if (response.status === 429) {
+        console.error("漫画検索: レート制限");
+        return {
+          ok: false,
+          response: NextResponse.json(
+            {
+              results: [],
+              error:
+                "リクエストが多すぎます。しばらくしてから再試行してください",
+            },
+            { status: 429 }
+          ),
+        };
+      }
+
+      if (!response.ok) {
+        console.error("漫画検索: APIエラー", response.status);
+        return {
+          ok: false,
+          response: NextResponse.json(
+            { results: [], error: "漫画検索に失敗しました" },
+            { status: 502 }
+          ),
+        };
+      }
+
+      return { ok: true, items: data.Items ?? [] };
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        console.error("漫画検索: タイムアウト");
+        return {
+          ok: false,
+          response: NextResponse.json(
+            { results: [], error: "漫画検索がタイムアウトしました" },
+            { status: 504 }
+          ),
+        };
+      }
+      console.error("漫画検索エラー:", {
+        name: error instanceof Error ? error.name : "Error",
+      });
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { results: [], error: "漫画検索に失敗しました" },
+          { status: 502 }
+        ),
+      };
+    } finally {
+      clearTimeout(timeoutId);
     }
+  };
 
-    if (!response.ok) {
-      console.error("漫画検索: APIエラー", response.status);
-      return NextResponse.json(
-        { results: [], error: "漫画検索に失敗しました" },
-        { status: 502 }
-      );
-    }
+  const primary = await fetchMangaItems(query);
+  if (!primary.ok) return primary.response;
 
-    const items = data.Items ?? [];
-    const results = groupIntoSeries(toCandidates(items), query);
+  let results = groupIntoSeries(toCandidates(primary.items), query);
 
-    return NextResponse.json({ results });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      console.error("漫画検索: タイムアウト");
-      return NextResponse.json(
-        { results: [], error: "漫画検索がタイムアウトしました" },
-        { status: 504 }
-      );
-    }
-
-    console.error("漫画検索エラー:", {
-      name: error instanceof Error ? error.name : "Error",
+  // 0件のときだけ表記ゆれ再試行（最大2回）→ prefix
+  if (results.length === 0) {
+    const retries = [
+      ...buildNotationRetryQueries(query, 2),
+      buildCandidatePrefixQuery(query),
+    ].filter((value, index, list): value is string => {
+      if (!value || value === query) return false;
+      return list.indexOf(value) === index;
     });
-    return NextResponse.json(
-      { results: [], error: "漫画検索に失敗しました" },
-      { status: 502 }
-    );
-  } finally {
-    clearTimeout(timeoutId);
+
+    for (const retry of retries.slice(0, 2)) {
+      const next = await fetchMangaItems(retry);
+      if (!next.ok) return next.response;
+      const filtered = groupIntoSeries(toCandidates(next.items), query).filter(
+        (row) => titlesMatchCompact(row.title, query)
+      );
+      if (filtered.length > 0) {
+        results = filtered;
+        break;
+      }
+    }
   }
+
+  return NextResponse.json({ results });
 }

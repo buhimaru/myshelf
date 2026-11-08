@@ -15,7 +15,7 @@ export type FollowConfirmContext = {
 
 export function followRequestConfirmMessage(ctx: FollowConfirmContext): string {
   if (ctx.targetIsPublic) {
-    return "この公開棚をフォローしますか？公開中は誰でも閲覧できます。相手が非公開にしても、このフォローだけでは非公開棚は見られません。";
+    return "この公開棚をフォローしますか？\n\n公開中は誰でも閲覧できますが、相手が棚を非公開に変更した場合、その時点で相互フォローでなければ閲覧できなくなります。";
   }
 
   if (ctx.viewerIsPublic) {
@@ -47,23 +47,13 @@ export function followAcceptConfirmMessage(opts: {
 export function unfollowConfirmMessage(
   ctx: FollowConfirmContext & { theyFollowMe?: boolean }
 ): string {
-  // 両者非公開: DB が双方向削除するため必ずその旨を説明
-  if (!ctx.targetIsPublic && !ctx.viewerIsPublic) {
-    return "フォローを解除すると、お互いの非公開棚は閲覧できなくなります。双方のフォロー関係もまとめて解消されます。よろしいですか？";
+  // ③ 相手が非公開かつ相互フォロー（現在閲覧可）のときだけ閲覧喪失を案内
+  if (!ctx.targetIsPublic && ctx.theyFollowMe) {
+    return "フォローを解除すると、相手の非公開棚を閲覧できなくなります。よろしいですか？";
   }
 
-  if (ctx.theyFollowMe) {
-    if (!ctx.targetIsPublic && ctx.viewerIsPublic) {
-      return "あなたから相手へのフォローだけを解除します。相手からのフォローは残り、相手の非公開棚は閲覧できなくなります。よろしいですか？";
-    }
-    return "あなたから相手へのフォローだけを解除します。相手からのフォローは残ります。よろしいですか？";
-  }
-
-  if (!ctx.targetIsPublic && ctx.viewerIsPublic) {
-    return "フォローを解除すると、相手の非公開棚は閲覧できなくなります。よろしいですか？";
-  }
-
-  return "この棚のフォローを解除します。よろしいですか？";
+  // ① 公開棚 / ② 非公開だが相互フォローではない（すでに閲覧不可）
+  return "このユーザーのフォローを解除しますか？";
 }
 
 export function removeFollowerConfirmMessage(opts: {

@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MediaItem, MediaType } from "../types/media";
 import { SHELF_TYPE_LABEL } from "../utils/shelfDisplay";
+import { shelfItemAriaLabel } from "../utils/tmdb/credits";
+import { boardFaces } from "../utils/shelfViewpoint";
 import { spineAppearance } from "../utils/spineAppearance";
 import styles from "./CoverShelf.module.css";
 
@@ -24,6 +26,14 @@ type CoverShelfProps = {
   onOpen: (item: MediaItem) => void;
   finish?: CoverShelfFinish;
   depth?: boolean;
+  /** 棚の枠・背板・棚板の奥行き。未指定の棚には出さない。 */
+  cabinet?: boolean;
+  /** 各段の内側の奥行き。枠の寸法は変えない。cabinet と一緒に使う。 */
+  interior?: boolean;
+  /** 側板・天板・棚板の面と、段ごとの陰影。枠の寸法は変えない。cabinet と一緒に使う。 */
+  structure?: boolean;
+  /** 中央を目の高さにした横板の見え方。cabinet と一緒に使う。 */
+  viewpoint?: boolean;
 };
 
 function hashId(id: string) {
@@ -162,6 +172,10 @@ export default function CoverShelf({
   onOpen,
   finish = "oak",
   depth = false,
+  cabinet = false,
+  interior = false,
+  structure = false,
+  viewpoint = false,
 }: CoverShelfProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
@@ -266,20 +280,45 @@ export default function CoverShelf({
     <div
       className={`${styles.case} ${styles.framed} ${styles[finish]} ${
         depth ? styles.bodied : ""
+      } ${cabinet ? styles.cabinet : ""} ${
+        cabinet && interior ? styles.interior : ""
+      } ${cabinet && structure ? styles.structure : ""} ${
+        cabinet && viewpoint ? styles.viewpoint : ""
       }`}
+      style={
+        cabinet && viewpoint
+          ? {
+              ["--board-front" as string]: `${boardFaces(0, rows.length + 1).front}px`,
+              ["--board-under" as string]: `${boardFaces(0, rows.length + 1).under}px`,
+            }
+          : undefined
+      }
     >
       <div className={styles.back} aria-hidden="true" />
       <div className={`${styles.side} ${styles.sideLeft}`} aria-hidden="true" />
       <div className={`${styles.side} ${styles.sideRight}`} aria-hidden="true" />
       <div className={styles.top} aria-hidden="true" />
       <div ref={boardRef} className={styles.board}>
-      {rows.map((row) => (
-        <div className={styles.row} key={row.map((item) => item.id).join("-")}>
+      {rows.map((row, rowIndex) => {
+        const faces = boardFaces(rowIndex + 1, rows.length + 1);
+        return (
+        <div
+          className={styles.row}
+          key={row.map((item) => item.id).join("-")}
+          style={
+            cabinet && viewpoint
+              ? {
+                  ["--board-front" as string]: `${faces.front}px`,
+                  ["--board-under" as string]: `${faces.under}px`,
+                  ["--board-deck" as string]: `${faces.deck}px`,
+                }
+              : undefined
+          }
+        >
           <div className={styles.items} data-cover-items="">
             {row.map((packed) => {
               const item = currentById.get(packed.id) ?? packed;
               const face = coverFace(item.id, item.type);
-              const creator = item.creator?.trim() || "作者不明";
               const genre = SHELF_TYPE_LABEL[item.type] ?? "作品";
               const coverKey = `${item.id}\0${item.imageUrl ?? ""}`;
               const showImage = Boolean(item.imageUrl) && !failedCovers.has(coverKey);
@@ -290,7 +329,12 @@ export default function CoverShelf({
                   type="button"
                   className={styles.open}
                   style={{ width: face.width }}
-                  aria-label={`${item.title}、${creator}、${genre}。作品詳細を開く`}
+                  aria-label={shelfItemAriaLabel({
+                    title: item.title,
+                    creator: item.creator,
+                    type: item.type,
+                    genreLabel: genre,
+                  })}
                   onClick={() => onOpen(item)}
                   onMouseEnter={(event) => {
                     if (!showImage || !caption) return;
@@ -333,9 +377,15 @@ export default function CoverShelf({
               );
             })}
           </div>
-          <div className={styles.plank} aria-hidden="true" />
+          <div
+            className={`${styles.plank}${faces.deck ? ` ${styles.deckOn}` : ""}${
+              faces.under ? ` ${styles.underOn}` : ""
+            }`}
+            aria-hidden="true"
+          />
         </div>
-      ))}
+        );
+      })}
     </div>
     {mounted &&
       tipTarget &&

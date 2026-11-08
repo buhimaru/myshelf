@@ -21,8 +21,13 @@ import {
   unfollowShelf,
 } from "../utils/supabase/follow";
 import { fetchMyProfile } from "../utils/supabase/profile";
+import {
+  announceShelfSettingsModal,
+  subscribeShelfSettingsModalExclusive,
+} from "../utils/shelfSettingsModalExclusive";
 import { useAutoDismissMessage } from "../utils/useAutoDismissMessage";
 import { useFollowsSync } from "../utils/useFollowsSync";
+import ShelfSettingsModal from "./ShelfSettingsModal";
 
 type ShelfConnectionsProps = {
   user: User;
@@ -85,6 +90,18 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
     },
     [supabase, user.id]
   );
+
+  useEffect(() => {
+    return subscribeShelfSettingsModalExclusive("connections", () => {
+      setPanelOpen(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (panelOpen) {
+      announceShelfSettingsModal("connections");
+    }
+  }, [panelOpen]);
 
   useEffect(() => {
     if (!panelOpen) {
@@ -271,216 +288,214 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
       <button
         type="button"
         className={`my-shelf-visibility-chip shelf-connections-chip${panelOpen ? " is-open" : ""}`}
+        aria-haspopup="dialog"
         aria-expanded={panelOpen}
-        aria-controls="shelf-connections-panel"
         onClick={() => {
-          const next = !panelOpen;
-          setPanelOpen(next);
-          if (next) {
-            clearSuccessToast();
-            setActionError("");
+          if (panelOpen) {
+            setPanelOpen(false);
+            return;
           }
+          clearSuccessToast();
+          setActionError("");
+          setPanelOpen(true);
         }}
       >
         <span>つながり</span>
       </button>
 
-      {panelOpen && (
-        <div
-          id="shelf-connections-panel"
-          className="my-shelf-visibility-panel shelf-connections-panel"
-          role="region"
-          aria-label="つながり一覧"
-        >
-          <div className="my-shelf-visibility-panel-head">
-            <h2 className="my-shelf-visibility-title">つながり</h2>
-            <button
-              type="button"
-              className="my-shelf-visibility-close"
-              onClick={() => setPanelOpen(false)}
-            >
-              閉じる
-            </button>
-          </div>
+      <ShelfSettingsModal
+        open={panelOpen}
+        title="つながり"
+        onClose={() => setPanelOpen(false)}
+        onBeforeClose={() => {
+          if (menuUserId) {
+            setMenuUserId(null);
+            return false;
+          }
+          return true;
+        }}
+        className="shelf-connections-modal"
+      >
+        <p className="shelf-panel-lead">
+          フォローしているユーザーがここに表示されます。相互フォローになると、お互いの非公開棚も閲覧できるようになります。
+        </p>
 
-          <p className="shelf-panel-lead">
-            つながっている人と、送った申請を確認できます。届いた申請は「申請」から操作します。
+        {loading && (
+          <p className="my-shelf-visibility-status">読み込み中...</p>
+        )}
+
+        {!loading && loadError && <p className="shelf-error">{loadError}</p>}
+
+        {!loading && !loadError && bundle.accepted.length === 0 && (
+          <p className="my-shelf-visibility-note">
+            まだフォローしているユーザーはいません
           </p>
+        )}
 
-          {loading && (
-            <p className="my-shelf-visibility-status">読み込み中...</p>
-          )}
-
-          {!loading && loadError && <p className="shelf-error">{loadError}</p>}
-
-          {!loading && !loadError && totalCount === 0 && (
-            <p className="my-shelf-visibility-note">
-              まだつながりも申請中もありません。
-            </p>
-          )}
-
-          {!loading && !loadError && totalCount > 0 && (
-            <div className="shelf-connections-sections" ref={listRef}>
-              {bundle.outgoingPending.length > 0 && (
-                <section className="shelf-connections-section">
-                  <h3 className="shelf-connections-section-title">申請中</h3>
-                  <ul className="shelf-connections-list">
-                    {bundle.outgoingPending.map((person) => {
-                      const busy = actionKey === `cancel:${person.userId}`;
-                      return (
-                        <li
-                          key={`out:${person.followId ?? person.userId}`}
-                          className="shelf-connections-item"
-                        >
-                          <div className="shelf-connections-main">
-                            <div className="shelf-connections-identity">
-                              <p className="shelf-connections-name is-plain">
-                                {person.label}
-                              </p>
-                              <span
-                                className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
-                              >
-                                {connectionKindLabel(person.kind)}
-                              </span>
-                            </div>
+        {!loading && !loadError && totalCount > 0 && (
+          <div className="shelf-connections-sections" ref={listRef}>
+            {bundle.outgoingPending.length > 0 && (
+              <section className="shelf-connections-section">
+                <h3 className="shelf-connections-section-title">申請中</h3>
+                <ul className="shelf-connections-list">
+                  {bundle.outgoingPending.map((person) => {
+                    const busy = actionKey === `cancel:${person.userId}`;
+                    return (
+                      <li
+                        key={`out:${person.followId ?? person.userId}`}
+                        className="shelf-connections-item"
+                      >
+                        <div className="shelf-connections-main">
+                          <div className="shelf-connections-identity">
+                            <p className="shelf-connections-name is-plain">
+                              {person.label}
+                            </p>
+                            <span
+                              className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
+                            >
+                              {connectionKindLabel(person.kind)}
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            className="shelf-connections-inline-action"
-                            disabled={Boolean(actionKey)}
-                            onClick={() => void handleCancelOutgoing(person)}
-                          >
-                            {busy ? "処理中..." : "申請を取り消す"}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              )}
-
-              {bundle.accepted.length > 0 && (
-                <section className="shelf-connections-section">
-                  <h3 className="shelf-connections-section-title">
-                    つながっている人
-                  </h3>
-                  <ul className="shelf-connections-list">
-                    {bundle.accepted.map((person) => {
-                      const shelfHref = `/shelf/${person.userId}`;
-                      const menuOpen = menuUserId === person.userId;
-                      const busy =
-                        actionKey === `unfollow:${person.userId}` ||
-                        actionKey === `remove:${person.userId}`;
-
-                      return (
-                        <li
-                          key={`acc:${person.userId}`}
-                          className="shelf-connections-item"
+                        </div>
+                        <button
+                          type="button"
+                          className="shelf-connections-inline-action"
+                          disabled={Boolean(actionKey)}
+                          onClick={() => void handleCancelOutgoing(person)}
                         >
-                          <div className="shelf-connections-main">
-                            <div className="shelf-connections-identity">
-                              <Link
-                                href={shelfHref}
-                                className="shelf-connections-name"
-                              >
-                                {person.label}
-                              </Link>
-                              <span
-                                className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
-                              >
-                                {connectionKindLabel(person.kind)}
-                              </span>
-                            </div>
+                          {busy ? "処理中..." : "申請を取り消す"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            {bundle.accepted.length > 0 && (
+              <section className="shelf-connections-section">
+                <h3 className="shelf-connections-section-title">
+                  つながっている人
+                </h3>
+                <ul className="shelf-connections-list">
+                  {bundle.accepted.map((person) => {
+                    const shelfHref = `/shelf/${person.userId}`;
+                    const menuOpen = menuUserId === person.userId;
+                    const busy =
+                      actionKey === `unfollow:${person.userId}` ||
+                      actionKey === `remove:${person.userId}`;
+
+                    return (
+                      <li
+                        key={`acc:${person.userId}`}
+                        className="shelf-connections-item"
+                      >
+                        <div className="shelf-connections-main">
+                          <div className="shelf-connections-identity">
                             <Link
                               href={shelfHref}
-                              className="shelf-connections-visit"
+                              className="shelf-connections-name"
                             >
-                              棚を見る
+                              {person.label}
                             </Link>
-                          </div>
-
-                          <div
-                            className="shelf-connections-menu"
-                            data-connection-menu
-                          >
-                            <button
-                              type="button"
-                              className="shelf-connections-menu-trigger"
-                              aria-label={`${person.label} のメニュー`}
-                              aria-expanded={menuOpen}
-                              aria-haspopup="menu"
-                              disabled={Boolean(actionKey)}
-                              onClick={() => {
-                                setMenuUserId((current) =>
-                                  current === person.userId
-                                    ? null
-                                    : person.userId
-                                );
-                              }}
+                            <span
+                              className={`shelf-relation-badge ${connectionKindClassName(person.kind)}`}
                             >
-                              …
-                            </button>
-
-                            {menuOpen && (
-                              <div
-                                className="shelf-connections-menu-panel"
-                                role="menu"
-                              >
-                                {person.iFollowThem && (
-                                  <button
-                                    type="button"
-                                    className="shelf-connections-menu-item"
-                                    role="menuitem"
-                                    disabled={busy}
-                                    onClick={() => void handleUnfollow(person)}
-                                  >
-                                    {busy ? "処理中..." : "フォロー解除"}
-                                  </button>
-                                )}
-                                {person.theyFollowMe && (
-                                  <button
-                                    type="button"
-                                    className="shelf-connections-menu-item"
-                                    role="menuitem"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      void handleRemoveFollower(person)
-                                    }
-                                  >
-                                    {busy
-                                      ? "処理中..."
-                                      : "フォロワーから解除"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                              {connectionKindLabel(person.kind)}
+                            </span>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              )}
-            </div>
-          )}
+                          <Link
+                            href={shelfHref}
+                            className="shelf-connections-visit"
+                          >
+                            棚を見る
+                          </Link>
+                        </div>
 
-          {actionError && <p className="shelf-error">{actionError}</p>}
-        </div>
-      )}
+                        <div
+                          className="shelf-connections-menu"
+                          data-connection-menu
+                        >
+                          <button
+                            type="button"
+                            className="shelf-connections-menu-trigger"
+                            aria-label={`${person.label} のメニュー`}
+                            aria-expanded={menuOpen}
+                            aria-haspopup="menu"
+                            disabled={Boolean(actionKey)}
+                            onClick={() => {
+                              setMenuUserId((current) =>
+                                current === person.userId
+                                  ? null
+                                  : person.userId
+                              );
+                            }}
+                          >
+                            …
+                          </button>
 
-      {actionMessage && (
-        <p className="shelf-ui-toast my-shelf-visibility-success" role="status">
-          {actionMessage}
-          <button
-            type="button"
-            className="shelf-ui-toast-dismiss"
-            aria-label="通知を閉じる"
-            onClick={clearSuccessToast}
+                          {menuOpen && (
+                            <div
+                              className="shelf-connections-menu-panel"
+                              role="menu"
+                            >
+                              {person.iFollowThem && (
+                                <button
+                                  type="button"
+                                  className="shelf-connections-menu-item"
+                                  role="menuitem"
+                                  disabled={busy}
+                                  onClick={() => void handleUnfollow(person)}
+                                >
+                                  {busy ? "処理中..." : "フォロー解除"}
+                                </button>
+                              )}
+                              {person.theyFollowMe && (
+                                <button
+                                  type="button"
+                                  className="shelf-connections-menu-item"
+                                  role="menuitem"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    void handleRemoveFollower(person)
+                                  }
+                                >
+                                  {busy
+                                    ? "処理中..."
+                                    : "フォロワーから解除"}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+          </div>
+        )}
+
+        {actionError && <p className="shelf-error">{actionError}</p>}
+
+        {actionMessage && (
+          <p
+            className="shelf-ui-toast my-shelf-visibility-success"
+            role="status"
           >
-            ×
-          </button>
-        </p>
-      )}
+            {actionMessage}
+            <button
+              type="button"
+              className="shelf-ui-toast-dismiss"
+              aria-label="通知を閉じる"
+              onClick={clearSuccessToast}
+            >
+              ×
+            </button>
+          </p>
+        )}
+      </ShelfSettingsModal>
     </div>
   );
 }

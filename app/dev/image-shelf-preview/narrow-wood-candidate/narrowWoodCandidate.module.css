@@ -1,0 +1,53 @@
+.root {
+  min-height: 100dvh;
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  color: var(--muted, #78716c);
+  font-size: 0.85rem;
+}
+
+.switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1rem 0 0.65rem;
+}
+
+.switchBtn {
+  appearance: none;
+  border: 1px solid #d6d3d1;
+  border-radius: 999px;
+  background: #fff;
+  color: #44403c;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.switchBtn:hover {
+  background: #fafaf9;
+}
+
+.switchBtnActive {
+  border-color: #1c1917;
+  background: #1c1917;
+  color: #fff;
+}
+
+.switchBtnActive:hover {
+  background: #292524;
+}
+
+.caption {
+  margin: 0 0 0.85rem;
+  color: #a8a29e;
+  font-size: 0.78rem;
+}
+
+.stageWrap {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}

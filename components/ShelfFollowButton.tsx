@@ -42,6 +42,7 @@ export default function ShelfFollowButton({
   const [supabase] = useState(() => createClient());
   const [status, setStatus] = useState<FollowStatus>("none");
   const [viewerIsPublic, setViewerIsPublic] = useState(false);
+  const [theyFollowMe, setTheyFollowMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,8 +64,9 @@ export default function ShelfFollowButton({
       }
       setError("");
 
-      const [statusResult, profileResult] = await Promise.all([
+      const [statusResult, reverseResult, profileResult] = await Promise.all([
         fetchFollowStatus(supabase, viewer.id, ownerId),
+        fetchFollowStatus(supabase, ownerId, viewer.id),
         fetchMyProfile(supabase, viewer.id),
       ]);
 
@@ -77,6 +79,7 @@ export default function ShelfFollowButton({
           }
           return "none";
         });
+        setTheyFollowMe(false);
       } else {
         const next = statusResult.status;
         setStatus((prev) => {
@@ -85,6 +88,9 @@ export default function ShelfFollowButton({
           }
           return next;
         });
+        setTheyFollowMe(
+          !reverseResult.error && reverseResult.status === "accepted"
+        );
       }
 
       if (profileResult.data) {
@@ -102,6 +108,7 @@ export default function ShelfFollowButton({
     if (isOwnShelf || !isRegistered || !viewer) {
       setStatus("none");
       setViewerIsPublic(false);
+      setTheyFollowMe(false);
       setLoading(false);
       clearSuccessMessage();
       setError("");
@@ -252,6 +259,7 @@ export default function ShelfFollowButton({
         unfollowConfirmMessage({
           targetIsPublic: ownerIsPublic,
           viewerIsPublic,
+          theyFollowMe,
         })
       )
     ) {

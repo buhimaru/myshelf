@@ -1,0 +1,337 @@
+/* 表紙フィット A〜E 比較（プレビュー専用。本番 ImageShelf 未適用） */
+
+.root {
+  width: 100%;
+}
+
+.lead {
+  margin: 0 0 0.75rem;
+  color: #57534e;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.toolbar {
+  margin: 0 0 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.btnGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.toolBtn,
+.toolBtnActive {
+  appearance: none;
+  border: 1px solid #d6d3d1;
+  background: #fafaf9;
+  color: #292524;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  padding: 0.4rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toolBtn:hover {
+  background: #f5f5f4;
+  border-color: #a8a29e;
+}
+
+.toolBtnActive {
+  background: #1c1917;
+  border-color: #1c1917;
+  color: #fafaf9;
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .compareGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stageWrap {
+  width: 100%;
+}
+
+.stageLabel {
+  margin: 0 0 0.35rem;
+  color: #44403c;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.stage {
+  --shelf-w: 1024;
+  --shelf-h: 664;
+  position: relative;
+  width: min(100%, 920px, calc((100dvh - 14rem) * (var(--shelf-w) / var(--shelf-h))));
+  max-height: calc(100dvh - 14rem);
+  aspect-ratio: var(--shelf-w) / var(--shelf-h);
+  margin: 0 auto;
+  overflow: hidden;
+  background: #f5f5f4;
+}
+
+/* 背景比較ページ用：棚を大きく・全体が見えるよう余白を抑える */
+.stageLarge {
+  width: min(100%, 1180px, calc((100dvh - 9rem) * (var(--shelf-w) / var(--shelf-h))));
+  max-height: calc(100dvh - 9rem);
+}
+
+.compareGrid .stage {
+  width: 100%;
+  max-height: none;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/*
+ * 本番 ImageShelf.module.css の自然仕上げと同等（モード A）
+ * 座標・枠サイズは変更しない
+ */
+.coverBtn {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  isolation: isolate;
+  border-radius: 1.5px;
+  overflow: visible;
+  filter: none;
+}
+
+.coverBtn:focus-visible {
+  outline: 2px solid #1c1917;
+  outline-offset: 2px;
+}
+
+.coverShadow {
+  display: block;
+  position: absolute;
+  left: 3px;
+  top: 1.5px;
+  right: -3px;
+  bottom: -1.5px;
+  z-index: -1;
+  border-radius: 2px;
+  background: rgba(28, 18, 10, 0.28);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.coverNearLed .coverShadow {
+  background: rgba(28, 18, 10, 0.07);
+  filter: blur(2.5px);
+  left: 1px;
+  right: -1px;
+  top: 1px;
+  bottom: -1px;
+}
+
+/* A: 現行 cover */
+.coverImgCover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 1.5px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverLight {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 1.5px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 235, 0.16),
+    inset 0 -1px 0 rgba(20, 12, 8, 0.12),
+    inset 1px 0 0 rgba(255, 250, 240, 0.1),
+    inset -1px 0 0 rgba(20, 12, 8, 0.08);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 248, 235, 0.05) 0%,
+    transparent 16%,
+    transparent 84%,
+    rgba(20, 12, 8, 0.04) 100%
+  );
+}
+
+/* B〜E: 下端基準 contain＋縮小。影・光は画像外形のラッパーに追従 */
+.coverFitWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.coverFitInner {
+  position: relative;
+  flex-shrink: 0;
+  line-height: 0;
+  border-radius: 1.5px;
+}
+
+.coverImgContain {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 1.5px;
+  pointer-events: none;
+  user-select: none;
+  /* 余白は透明。白い矩形を出さない */
+  background: transparent;
+}
+
+.coverFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: linear-gradient(160deg, #e7e5e4 0%, #d6d3d1 100%);
+  color: #57534e;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  text-align: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.coverFallbackLabel {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+}
+
+.coverFallbackTitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.zoomSection {
+  margin: 1.25rem 0 0.5rem;
+  padding: 1rem 0.75rem 1.25rem;
+  border-top: 1px solid #e7e5e4;
+}
+
+.zoomTitle {
+  margin: 0 0 0.35rem;
+  color: #1c1917;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.zoomLead {
+  margin: 0 0 0.85rem;
+  color: #57534e;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.zoomGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .zoomGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zoomCard {
+  border: 1px solid #e7e5e4;
+  background: #fafaf9;
+  padding: 0.5rem;
+}
+
+.zoomCardTitle {
+  margin: 0 0 0.4rem;
+  color: #44403c;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.zoomPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.zoomSlot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #c4b5a0 0%, #a89078 55%, #8b7355 100%);
+  border-radius: 2px;
+}
+
+.zoomSlotLabel {
+  margin: 0.25rem 0 0;
+  color: #78716c;
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.zoomSlotInner {
+  position: absolute;
+  inset: 8% 10% 12%;
+}
+
+.meta {
+  margin: 0.85rem 0 0;
+  color: #57534e;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}

@@ -1,0 +1,28 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  max-height: none;
+  overflow: visible;
+}
+
+/* hidden はスクロール容器になり、棚の上でホイールがページまで届かない。
+   clip は同じ切り抜きのまま、スクロール容器にしない。 */
+.grid .stage {
+  max-height: none;
+  overflow: clip;
+  touch-action: pan-y;
+}
+
+.tableWrap.tableWrap {
+  overflow-x: auto;
+  overflow-y: clip;
+  overscroll-behavior-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

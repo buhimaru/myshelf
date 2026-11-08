@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   DISPLAY_NAME_MAX_LENGTH,
@@ -12,9 +12,6 @@ import {
   updateMyDisplayName,
 } from "../utils/supabase/profile";
 
-/** 保存成功メッセージ表示後、パネルを閉じるまでの待ち時間 */
-const SAVE_SUCCESS_CLOSE_MS = 1000;
-
 type ShelfDisplayNameSettingsProps = {
   user: User;
   onDisplayNameChanged?: (displayName: string | null) => void;
@@ -25,36 +22,18 @@ export default function ShelfDisplayNameSettings({
   onDisplayNameChanged,
 }: ShelfDisplayNameSettingsProps) {
   const supabase = createClient();
-  const [panelOpen, setPanelOpen] = useState(false);
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [editing, setEditing] = useState(false);
   const [savedName, setSavedName] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
-  const closeTimerRef = useRef<number | null>(null);
 
   const publicLabel = resolvePublicDisplayName({ displayName: savedName });
-
-  const clearCloseTimer = useCallback(() => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const closePanel = useCallback(() => {
-    clearCloseTimer();
-    setSaveMessage("");
-    setPanelOpen(false);
-  }, [clearCloseTimer]);
-
-  useEffect(() => {
-    return () => {
-      clearCloseTimer();
-    };
-  }, [clearCloseTimer]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,8 +42,6 @@ export default function ShelfDisplayNameSettings({
     const load = async () => {
       setLoading(true);
       setLoadError("");
-      clearCloseTimer();
-      setSaveMessage("");
       setSaveError("");
 
       const { data, error } = await fetchMyProfile(client, user.id);
@@ -74,7 +51,6 @@ export default function ShelfDisplayNameSettings({
       if (error) {
         setLoadError(error.message);
         setLoading(false);
-        // 取得完了を親へ伝え、読み込み中のプレースホルダーを解消する
         onDisplayNameChanged?.(null);
         return;
       }
@@ -102,12 +78,30 @@ export default function ShelfDisplayNameSettings({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const startEditing = () => {
+    if (loading || saving) return;
+    setSaveError("");
+    setDraft(savedName ?? "");
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    if (saving) return;
+    setDraft(savedName ?? "");
+    setSaveError("");
+    setEditing(false);
+  };
+
   const handleSave = async () => {
     if (saving) return;
 
     setSaving(true);
-    clearCloseTimer();
-    setSaveMessage("");
     setSaveError("");
 
     const { data, error } = await updateMyDisplayName(
@@ -120,7 +114,8 @@ export default function ShelfDisplayNameSettings({
 
     if (error || !data) {
       setSaveError(
-        error?.message || "表示名の保存に失敗しました。もう一度お試しください。"
+        error?.message ||
+          "ユーザー名の保存に失敗しました。もう一度お試しください。"
       );
       return;
     }
@@ -128,119 +123,109 @@ export default function ShelfDisplayNameSettings({
     const name = data.display_name?.trim() || null;
     setSavedName(name);
     setDraft(name ?? "");
-    setSaveMessage("表示名を保存しました。");
+    setEditing(false);
     onDisplayNameChanged?.(name);
-
-    clearCloseTimer();
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null;
-      setSaveMessage("");
-      setPanelOpen(false);
-    }, SAVE_SUCCESS_CLOSE_MS);
   };
 
-  const chipLabel = loading ? "…" : "表示名";
-
   return (
-    <>
-      <button
-        type="button"
-        className={`my-shelf-visibility-chip shelf-display-name-chip${panelOpen ? " is-open" : ""}`}
-        aria-expanded={panelOpen}
-        aria-controls="shelf-display-name-panel"
-        onClick={() => {
-          if (panelOpen) {
-            closePanel();
-            return;
-          }
-          clearCloseTimer();
-          setSaveMessage("");
-          setSaveError("");
-          setDraft(savedName ?? "");
-          setPanelOpen(true);
-        }}
-      >
-        <span>{chipLabel}</span>
-      </button>
-
-      {panelOpen && (
-        <div
-          id="shelf-display-name-panel"
-          className="my-shelf-visibility-panel shelf-display-name-panel"
-          role="region"
-          aria-label="表示名の編集"
-        >
-          <div className="my-shelf-visibility-panel-head">
-            <h2 className="my-shelf-visibility-title">表示名を編集</h2>
+    <div className="my-shelf-display-name-editor">
+      {!editing ? (
+        <p className="my-shelf-display-name-line" aria-live="polite">
+          ユーザー名：
+          {loading ? (
+            <span
+              className="my-shelf-display-name-placeholder"
+              aria-hidden="true"
+            >
+              …
+            </span>
+          ) : (
+            <span className="my-shelf-display-name-value">{publicLabel}</span>
+          )}
+          {!loading && (
             <button
               type="button"
-              className="my-shelf-visibility-close"
-              onClick={closePanel}
+              className="my-shelf-display-name-edit-btn"
+              onClick={startEditing}
+              aria-label="ユーザー名を編集"
+              title="ユーザー名を編集"
             >
-              閉じる
+              <svg
+                className="my-shelf-display-name-edit-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4.5 19.5h4L19 9l-4-4L4.5 15.5v4z" />
+                <path d="m13.5 6.5 4 4" />
+              </svg>
+            </button>
+          )}
+        </p>
+      ) : (
+        <div className="my-shelf-display-name-edit-row">
+          <label className="my-shelf-display-name-edit-prefix" htmlFor={inputId}>
+            ユーザー名：
+          </label>
+          <input
+            ref={inputRef}
+            id={inputId}
+            type="text"
+            className="my-shelf-display-name-inline-input"
+            value={draft}
+            maxLength={DISPLAY_NAME_MAX_LENGTH}
+            placeholder="例: みやび"
+            disabled={saving}
+            aria-label="ユーザー名"
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleSave();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEditing();
+              }
+            }}
+          />
+          <div className="my-shelf-display-name-edit-actions">
+            <button
+              type="button"
+              className="my-shelf-display-name-save-btn"
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? "保存中..." : "保存"}
+            </button>
+            <button
+              type="button"
+              className="my-shelf-display-name-cancel-btn"
+              disabled={saving}
+              onClick={cancelEditing}
+            >
+              キャンセル
             </button>
           </div>
-
-          {loading && (
-            <p className="my-shelf-visibility-status">読み込み中...</p>
-          )}
-
-          {!loading && loadError && <p className="shelf-error">{loadError}</p>}
-
-          {!loading && !loadError && (
-            <>
-              <p className="my-shelf-visibility-status">
-                現在の表示: <strong>{publicLabel}</strong>
-              </p>
-              <p className="my-shelf-visibility-note">
-                つながり一覧や他人から見える名前です。未設定のままでも棚は使えます。
-              </p>
-
-              <label className="shelf-display-name-label" htmlFor="shelf-display-name-input">
-                表示名
-              </label>
-              <input
-                id="shelf-display-name-input"
-                type="text"
-                className="shelf-display-name-input"
-                value={draft}
-                maxLength={DISPLAY_NAME_MAX_LENGTH}
-                placeholder="例: みやび"
-                disabled={saving}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void handleSave();
-                  }
-                }}
-              />
-              <p className="shelf-display-name-hint">
-                前後の空白は除き、1〜{DISPLAY_NAME_MAX_LENGTH}文字で保存します（
-                {draft.trim().length}/{DISPLAY_NAME_MAX_LENGTH}）
-              </p>
-
-              <div className="shelf-display-name-actions">
-                <button
-                  type="button"
-                  className="shelf-display-name-save"
-                  disabled={saving}
-                  onClick={() => void handleSave()}
-                >
-                  {saving ? "保存中..." : "保存する"}
-                </button>
-              </div>
-
-              {saveMessage && (
-                <p className="my-shelf-visibility-success" role="status">
-                  {saveMessage}
-                </p>
-              )}
-              {saveError && <p className="shelf-error">{saveError}</p>}
-            </>
-          )}
         </div>
       )}
-    </>
+
+      {!editing && loadError && (
+        <p className="my-shelf-display-name-inline-error" role="alert">
+          {loadError}
+        </p>
+      )}
+      {editing && saveError && (
+        <p className="my-shelf-display-name-inline-error" role="alert">
+          {saveError}
+        </p>
+      )}
+    </div>
   );
 }

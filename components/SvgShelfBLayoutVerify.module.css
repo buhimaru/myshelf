@@ -1,0 +1,242 @@
+.wrap {
+  width: 100%;
+  max-width: 1100px;
+}
+
+.hint {
+  max-width: 48rem;
+  margin: 0 0 0.85rem;
+  color: #78716c;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.viewSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+}
+
+.viewSwitch button {
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  background: #fff;
+  color: #78716c;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.viewSwitch button.viewOn {
+  border-color: #44403c;
+  background: #44403c;
+  color: #fff;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.1rem 1.4rem;
+  align-items: start;
+}
+
+.compare3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem 1.4rem;
+  align-items: start;
+}
+
+.compare4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .compare3 {
+    grid-template-columns: 1fr;
+  }
+
+  .compare4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .compare {
+    grid-template-columns: 1fr;
+  }
+
+  .compare4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  margin: 0;
+}
+
+.panel figcaption {
+  margin: 0 0 0.45rem;
+  color: #57534e;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.stage {
+  --shelf-w: 479;
+  --shelf-h: 369;
+  position: relative;
+  width: min(100%, 560px, calc((100dvh - 15rem) * (var(--shelf-w) / var(--shelf-h))));
+  max-height: calc(100dvh - 15rem);
+  aspect-ratio: var(--shelf-w) / var(--shelf-h);
+}
+
+.jointZoom {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 72 / 369;
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  background: #1a100c;
+}
+
+.jointZoomWide {
+  position: relative;
+  width: min(100%, 240px);
+  aspect-ratio: 64 / 369;
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  background: #1a100c;
+}
+
+.jointZoomProto {
+  position: relative;
+  width: min(100%, 320px);
+  aspect-ratio: 90 / 110;
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  background: #1a100c;
+}
+
+.idealJointCrop {
+  width: min(100%, 320px);
+  aspect-ratio: 90 / 110;
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  background: #1a100c;
+}
+
+.idealJointCrop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+}
+
+.jointZoomInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(100% * (var(--zw) / var(--zcw)));
+  height: calc(100% * (var(--zh) / var(--zch)));
+  transform: translate(
+    calc(-1 * var(--zx) / var(--zw) * 100%),
+    calc(-1 * var(--zy, 0) / var(--zh) * 100%)
+  );
+}
+
+.jointZoomInner .stage {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+.shelfWrap {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+.shelfWrap :global(svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.refCrop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f5f0e8;
+}
+
+.refCropImg {
+  --ref-size: 512;
+  --shelf-w: 479;
+  --shelf-h: 369;
+  --crop-x: 17;
+  --crop-y: 77;
+  position: absolute;
+  left: calc(-1 * var(--crop-x) / var(--shelf-w) * 100%);
+  top: calc(-1 * var(--crop-y) / var(--shelf-h) * 100%);
+  width: calc(var(--ref-size) / var(--shelf-w) * 100%);
+  height: calc(var(--ref-size) / var(--shelf-h) * 100%);
+  max-width: none;
+  display: block;
+}
+
+.report {
+  margin-top: 1.35rem;
+  color: #44403c;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.report h2 {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.report ul {
+  margin: 0 0 0.85rem;
+  padding-left: 1.1rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #f0eeeb;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  background: #fafaf9;
+  color: #57534e;
+  font-weight: 600;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}

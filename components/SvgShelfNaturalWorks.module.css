@@ -1,0 +1,83 @@
+.frame {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+/* 幅と高さの両方の上限内で、viewBox 比を保ったまま最大表示
+   オフセットは見出し・モード切替・注釈分 */
+.stage {
+  --shelf-w: 900;
+  --shelf-h: 1200;
+  --chrome: 19rem;
+  position: relative;
+  width: min(
+    100%,
+    880px,
+    calc((100dvh - var(--chrome)) * (var(--shelf-w) / var(--shelf-h)))
+  );
+  margin: 0 auto;
+  aspect-ratio: var(--shelf-w) / var(--shelf-h);
+  max-height: calc(100dvh - var(--chrome));
+}
+
+.shelfWrap {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+.shelfWrap :global(svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stats {
+  margin: 0.7rem 0 0;
+  color: #78716c;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.bay {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  gap: 0;
+  overflow: hidden;
+}
+
+.item {
+  position: relative;
+  flex: 0 0 auto;
+  display: block;
+  max-height: 100%;
+  object-fit: contain;
+  background: #f7f3ec;
+  box-shadow: 0 -1px 2px rgba(20, 10, 4, 0.18);
+}
+
+.itemImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.itemFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0.35rem 0.25rem;
+  color: #5c4030;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  text-align: center;
+  word-break: break-word;
+  background: linear-gradient(180deg, #f3ebe0, #e6d5c0);
+}

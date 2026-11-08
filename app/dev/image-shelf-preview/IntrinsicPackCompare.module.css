@@ -1,0 +1,279 @@
+.root {
+  width: 100%;
+}
+
+.lead,
+.meta {
+  margin: 0 0 0.75rem;
+  color: #57534e;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.meta {
+  margin-top: 0.85rem;
+}
+
+.toolbar,
+.btnGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.toolbar {
+  margin: 0 0 0.65rem;
+  flex-direction: column;
+}
+
+.toolBtn,
+.toolBtnActive {
+  appearance: none;
+  border: 1px solid #d6d3d1;
+  background: #fafaf9;
+  color: #292524;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  padding: 0.4rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toolBtnActive {
+  background: #1c1917;
+  border-color: #1c1917;
+  color: #fafaf9;
+}
+
+.stats {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e7e5e4;
+  background: #fafaf9;
+  color: #44403c;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.stats strong {
+  color: #1c1917;
+  font-weight: 650;
+}
+
+.warn {
+  color: #9a3412;
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .compareGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stageWrap {
+  width: 100%;
+}
+
+.stageLabel {
+  margin: 0 0 0.35rem;
+  color: #44403c;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.stage {
+  --shelf-w: 1024;
+  --shelf-h: 664;
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--shelf-w) / var(--shelf-h);
+  overflow: hidden;
+  background: #f5f5f4;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.coverBtn {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  isolation: isolate;
+  border-radius: 1.5px;
+  overflow: visible;
+}
+
+.coverBtn:focus-visible {
+  outline: 2px solid #1c1917;
+  outline-offset: 2px;
+}
+
+.coverShadow {
+  display: block;
+  position: absolute;
+  left: 3px;
+  top: 1.5px;
+  right: -3px;
+  bottom: -1.5px;
+  z-index: -1;
+  border-radius: 2px;
+  background: rgba(28, 18, 10, 0.28);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.coverNearLed .coverShadow {
+  background: rgba(28, 18, 10, 0.07);
+  filter: blur(2.5px);
+  left: 1px;
+  right: -1px;
+  top: 1px;
+  bottom: -1px;
+}
+
+.coverFitWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.coverFitInner {
+  position: relative;
+  line-height: 0;
+  border-radius: 1.5px;
+}
+
+.coverImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 1.5px;
+  pointer-events: none;
+  user-select: none;
+  background: transparent;
+}
+
+.coverLight {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 235, 0.16),
+    inset 0 -1px 0 rgba(20, 12, 8, 0.12),
+    inset 1px 0 0 rgba(255, 250, 240, 0.1),
+    inset -1px 0 0 rgba(20, 12, 8, 0.08);
+}
+
+/* 文字量でボタン寸法が変わらないよう、NO IMAGEだけカード内に収める */
+.coverBtnText {
+  container-type: size;
+}
+
+.coverFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  overflow: hidden;
+  border-radius: 1.5px;
+  background: linear-gradient(160deg, #e7e5e4 0%, #d6d3d1 100%);
+  color: #57534e;
+  font-size: 12cqh;
+  line-height: 1.2;
+  text-align: center;
+  padding: 8% 6%;
+  box-sizing: border-box;
+}
+
+.coverFallbackLabel,
+.coverFallbackGenre,
+.coverFallbackTitle {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.coverFallbackLabel,
+.coverFallbackGenre {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.coverFallbackLabel {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  font-size: 0.85em;
+}
+
+.coverFallbackTitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.measure {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tableWrap {
+  margin-top: 0.85rem;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #e7e5e4;
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  color: #44403c;
+  font-weight: 600;
+}

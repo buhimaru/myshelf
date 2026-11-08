@@ -9,7 +9,7 @@ import type { Profile } from "../types/profile";
 import {
   SHELF_TYPE_LABEL,
   UNSET_DISPLAY_NAME,
-  filterAndSortShelfItems,
+  filterShelfItemsInAdditionOrder,
   resolvePublicDisplayName,
   isValidAuthUuid,
 } from "../utils/shelfDisplay";
@@ -22,14 +22,9 @@ import { createClient } from "../utils/supabase/client";
 import { fetchMyProfile } from "../utils/supabase/profile";
 import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
-import CoverShelf from "./CoverShelf";
+import ImageShelf from "./ImageShelf";
 import ShelfFollowButton from "./ShelfFollowButton";
 import ShelfItemDetail from "./ShelfItemDetail";
-import ShelfSpineShelf from "./ShelfSpineShelf";
-import ShelfViewModeToggle, {
-  publicShelfViewModeKey,
-  useShelfViewMode,
-} from "./ShelfViewModeToggle";
 
 /** ヘッダー用: 閲覧者自身のログイン表示（所有者名と混同しない） */
 type ViewerHeaderStatus =
@@ -64,10 +59,6 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("newest");
-  const [viewMode, setViewMode] = useShelfViewMode(
-    publicShelfViewModeKey(userId)
-  );
 
   useEffect(() => {
     return subscribeAuthUser(supabase, (next) => {
@@ -208,15 +199,13 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
   const handleResetFilters = () => {
     setSearchQuery("");
     setCategoryFilter("all");
-    setSortOrder("newest");
   };
 
   const visibleItems =
     view.status === "ok"
-      ? filterAndSortShelfItems(view.items, {
+      ? filterShelfItemsInAdditionOrder(view.items, {
           searchQuery,
           categoryFilter,
-          sortOrder,
         })
       : [];
 
@@ -384,15 +373,6 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                   <option value="anime">アニメ</option>
                   <option value="drama">ドラマ</option>
                 </select>
-                <select
-                  className="my-shelf-control my-shelf-control--filter"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                >
-                  <option value="newest">新しい順</option>
-                  <option value="oldest">古い順</option>
-                  <option value="title">作品名順</option>
-                </select>
                 <button
                   type="button"
                   className="my-shelf-reset"
@@ -402,12 +382,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                 </button>
               </div>
               <div className="my-shelf-toolbar-foot">
-                <p className="my-shelf-detail-hint">
-                  {viewMode === "spine"
-                    ? "背表紙を押すと作品詳細"
-                    : "表紙を押すと作品詳細"}
-                </p>
-                <ShelfViewModeToggle mode={viewMode} onChange={setViewMode} />
+                <p className="my-shelf-detail-hint">作品を押すと詳細</p>
               </div>
             </section>
 
@@ -422,16 +397,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
                 <p className="my-shelf-empty">該当する作品がありません。</p>
               )}
 
-              {viewMode === "spine" ? (
-                <ShelfSpineShelf items={visibleItems} onOpen={setDetailItem} />
-              ) : (
-                <CoverShelf
-                  items={visibleItems}
-                  finish="walnut"
-                  depth
-                  onOpen={setDetailItem}
-                />
-              )}
+              <ImageShelf items={visibleItems} onOpen={setDetailItem} />
             </section>
           </>
         )}

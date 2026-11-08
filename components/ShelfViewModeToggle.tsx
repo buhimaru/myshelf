@@ -2,10 +2,12 @@
 
 import { useLayoutEffect, useState } from "react";
 
-export type ShelfViewMode = "cover" | "spine";
+export type ShelfViewMode = "cover" | "spine" | "photo";
 
 function readShelfViewMode(value: string | null): ShelfViewMode {
-  return value === "spine" ? "spine" : "cover";
+  if (value === "spine") return "spine";
+  if (value === "photo") return "photo";
+  return "cover";
 }
 
 export function ownShelfViewModeKey(userId: string) {
@@ -60,6 +62,14 @@ export default function ShelfViewModeToggle({
         onClick={() => onChange("spine")}
       >
         背表紙
+      </button>
+      <button
+        type="button"
+        className={mode === "photo" ? "is-active" : ""}
+        aria-pressed={mode === "photo"}
+        onClick={() => onChange("photo")}
+      >
+        画像棚
       </button>
     </div>
   );
