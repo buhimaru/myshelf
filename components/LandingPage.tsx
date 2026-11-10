@@ -25,6 +25,7 @@ import {
   setEmailConfirmPending,
   setSignupEmailPending,
 } from "../utils/supabase/registrationNotice";
+import BrandLogoLink from "./BrandLogoLink";
 import ShelfPreview from "./ShelfPreview";
 import SiteFooter from "./SiteFooter";
 import { useLockBodyScroll } from "./useLockBodyScroll";
@@ -264,9 +265,7 @@ export default function LandingPage({
     <div className="lp">
       <header className="lp-header">
         <div className="lp-header-inner">
-          <Link href="/?lp=1" className="lp-logo">
-            myshelf
-          </Link>
+          <BrandLogoLink className="lp-logo" />
 
           <button
             type="button"

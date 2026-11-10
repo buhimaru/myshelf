@@ -22,6 +22,7 @@ import { createClient } from "../utils/supabase/client";
 import { fetchMyProfile } from "../utils/supabase/profile";
 import { loadPublicShelf } from "../utils/supabase/shelf";
 import { useFollowsSync } from "../utils/useFollowsSync";
+import BrandLogoLink from "./BrandLogoLink";
 import ImageShelf from "./ImageShelf";
 import ShelfFollowButton from "./ShelfFollowButton";
 import ShelfItemDetail from "./ShelfItemDetail";
@@ -225,9 +226,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
     <div className="my-shelf public-shelf">
       <header className="my-shelf-topbar">
         <div className="my-shelf-topbar-inner">
-          <Link href="/?lp=1" className="my-shelf-logo-link">
-            myshelf
-          </Link>
+          <BrandLogoLink className="my-shelf-logo-link" />
           <div className="my-shelf-account public-shelf-account">
             {viewerHeaderStatus.kind === "guest" && (
               <span className="my-shelf-user public-shelf-viewer-status">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import BrandLogoLink from "./BrandLogoLink";
 import { useLockBodyScroll } from "./useLockBodyScroll";
 
 type SiteHeaderProps = {
@@ -15,9 +16,7 @@ export default function SiteHeader({ active }: SiteHeaderProps) {
   return (
     <header className="lp-header">
       <div className="lp-header-inner">
-        <Link href="/?lp=1" className="lp-logo">
-          myshelf
-        </Link>
+        <BrandLogoLink className="lp-logo" />
 
         <button
           type="button"

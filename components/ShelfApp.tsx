@@ -42,6 +42,7 @@ import {
   type DeferredBookCoverPending,
 } from "../utils/deferredBookCover";
 import BookPaperbackCover from "./BookPaperbackCover";
+import BrandLogoLink from "./BrandLogoLink";
 import ImageShelf from "./ImageShelf";
 import ShelfItemDetail from "./ShelfItemDetail";
 import { useVisualViewportHeight } from "./useVisualViewportHeight";
@@ -2056,9 +2057,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     <div className="my-shelf">
       <header className="my-shelf-topbar">
         <div className="my-shelf-topbar-inner">
-          <Link href="/?lp=1" className="my-shelf-logo-link">
-            myshelf
-          </Link>
+          <BrandLogoLink className="my-shelf-logo-link" />
           <div className="my-shelf-account">
             <Link href="/search" className="my-shelf-search-btn">
               <svg

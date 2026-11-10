@@ -520,6 +520,27 @@ body {
   padding: 0.9rem 1.25rem;
 }
 
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.brand-logo-mark {
+  display: block;
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.brand-logo-text {
+  min-width: 0;
+}
+
 .lp-logo {
   font-size: 1.25rem;
   font-weight: 650;
@@ -1726,6 +1747,11 @@ body {
 
 .my-shelf-logo-link:hover {
   opacity: 0.85;
+}
+
+.my-shelf-logo-link.brand-logo:hover .brand-logo-text,
+.lp-logo.brand-logo:hover .brand-logo-text {
+  opacity: inherit;
 }
 
 .my-shelf-account {
