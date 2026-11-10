@@ -15,6 +15,7 @@ import {
   searchPublicShelvesByTitle,
   validateShelfSearchQuery,
 } from "../utils/supabase/shelfSearch";
+import SiteFooter from "./SiteFooter";
 import SiteHeader from "./SiteHeader";
 
 const SEARCH_ERROR_MESSAGE =
@@ -346,6 +347,7 @@ export default function ShelfSearchView() {
           </section>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }

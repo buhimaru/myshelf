@@ -480,6 +480,8 @@ body {
 
 /* Landing page */
 .lp {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, #fafaf9 0%, transparent 55%),
@@ -670,11 +672,12 @@ body {
   margin-top: 1.75rem;
 }
 
-/* 左カラム CTA 下のコンパクトな機能紹介（右カラムにはみ出さない） */
+/* コンパクトな機能紹介（狭い幅ではプレビューの下、PCでは左カラム2行目） */
 .lp-mini-features {
   width: 100%;
   max-width: 100%;
-  margin-top: 1.5rem;
+  /* 縦並び時は .lp-hero の gap に任せ、二重余白を避ける */
+  margin-top: 0;
   box-sizing: border-box;
   /* 左上基準: paddingは右・下寄りに増やして枠を拡大 */
   padding: 20px 24px 26px 20px;
@@ -750,6 +753,12 @@ body {
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.lp-auth-shelf-link {
+  width: 100%;
+  margin: 0 0 0.85rem;
+  box-sizing: border-box;
 }
 
 .lp-btn-primary:hover {
@@ -828,6 +837,16 @@ body {
   margin-top: 0.1rem;
 }
 
+/* 狭い画面: タブ上段・説明文下段（左揃え） */
+@media (max-width: 1099px) {
+  .lp-shelf-sample-controls {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+}
+
 .lp-shelf-sample-tabs {
   display: inline-flex;
   flex-wrap: wrap;
@@ -864,11 +883,22 @@ body {
 
 .lp-shelf-sample-hint {
   margin: 0;
-  flex: 1 1 12rem;
+  /* 縦並び時に flex-basis:12rem が高さになって空白化するのを防ぐ */
+  flex: 0 0 auto;
+  width: 100%;
   min-width: 0;
   color: #a8a29e;
   font-size: 0.72rem;
   line-height: 1.45;
+  text-align: left;
+}
+
+/* PC: 従来どおりタブ横に説明文を伸ばす */
+@media (min-width: 1100px) {
+  .lp-shelf-sample-hint {
+    flex: 1 1 12rem;
+    width: auto;
+  }
 }
 
 .lp-shelf-sample-frame {
@@ -1020,6 +1050,116 @@ body {
   background: #fafaf9;
   border: 1px solid var(--border);
   font-size: 0.9rem;
+}
+
+.lp-legal {
+  max-width: 720px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lp-legal-date {
+  margin: -0.5rem 0 1.5rem !important;
+  font-size: 0.9rem;
+}
+
+.lp-legal h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.45;
+}
+
+.lp-legal p {
+  margin: 0 0 0.9rem;
+}
+
+.lp-legal ol,
+.lp-legal ul {
+  margin: 0 0 1rem;
+  padding-left: 1.35rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.lp-legal li {
+  margin-bottom: 0.45rem;
+}
+
+.lp-legal a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.lp-contact-email {
+  margin: 0.25rem 0 1.25rem !important;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.lp-contact-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.lp-contact-notes li {
+  margin: 0 0 0.35rem;
+}
+
+.lp-contact-notes li::before {
+  content: "※";
+  margin-right: 0.15rem;
+}
+
+.site-footer {
+  width: 100%;
+  margin-top: auto;
+  padding: 1.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: #fff;
+  text-align: center;
+}
+
+.site-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.55rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.site-footer-link {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.site-footer-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.site-footer-sep {
+  color: #d6d3d1;
+  font-size: 0.82rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.site-footer-copy {
+  margin: 0.7rem 0 0;
+  color: #a8a29e;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .lp-howto-lead {
@@ -1339,7 +1479,6 @@ body {
   }
 
   .lp-mini-features {
-    margin-top: 1.65rem;
     max-width: calc(26rem + 50px);
   }
 
@@ -1408,22 +1547,34 @@ body {
 
 /*
  * PC 2カラム: 左コピー＋機能枠 / 右サンプル棚
- * 768px では狭すぎて重なるため、十分な幅でのみ横並びにする
+ * 狭い幅のDOM順は コピー → プレビュー → できること。
+ * 十分な幅ではグリッド配置で左にコピー＋機能、右にプレビューを戻す。
  */
 @media (min-width: 1100px) {
   .lp-hero {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto auto;
     align-items: start;
     padding: 3rem 2rem 2.25rem;
     gap: 2rem;
   }
 
   .lp-hero-copy {
+    grid-column: 1;
+    grid-row: 1;
     max-width: 34rem;
     padding-top: 0.15rem;
   }
 
+  .lp-mini-features {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+
   .lp-hero-visual {
+    grid-column: 2;
+    grid-row: 1 / span 2;
     justify-self: stretch;
   }
 
@@ -1460,7 +1611,6 @@ body {
 
   .lp-mini-features {
     /* 左上固定のまま右へ約50px拡大（下方向は内部拡大で約+30px） */
-    margin-top: 1.65rem;
     max-width: calc(22.5rem + 50px);
   }
 
@@ -1468,6 +1618,24 @@ body {
   .lp-feature-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0 1.75rem;
+  }
+}
+
+/* スマホ: サンプルプレビューを横いっぱいに近づけて拡大 */
+@media (max-width: 520px) {
+  .lp-hero-visual {
+    width: calc(100% + 1.8rem);
+    max-width: none;
+    margin-left: -0.9rem;
+    margin-right: -0.9rem;
+  }
+
+  .lp-shelf-sample-inner {
+    max-width: none;
+  }
+
+  .lp-shelf-sample-frame {
+    border-radius: calc(var(--radius) - 2px);
   }
 }
 
@@ -1667,9 +1835,34 @@ body {
 
 .my-shelf-auth-switch-note {
   margin: -0.35rem 0 1rem;
-  color: var(--muted);
+  color: #a8a29e;
   font-size: 0.78rem;
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+.my-shelf-auth-switch-note-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.3rem;
+  color: #78716c;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.my-shelf-auth-switch-note-icon {
+  flex: 0 0 auto;
+  display: block;
+  color: #a8a29e;
+}
+
+.my-shelf-auth-switch-note-body {
+  margin: 0;
+  color: #a8a29e;
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.55;
 }
 
 .my-shelf-auth-header {
@@ -2261,6 +2454,11 @@ body {
 
 .my-shelf-api-search-controls.is-music {
   grid-template-columns: 1fr;
+}
+
+/* スマホでは親グリッドの子として扱う（従来どおり縦積み） */
+.my-shelf-api-search-actions {
+  display: contents;
 }
 
 .my-shelf-api-search-more,
@@ -3081,16 +3279,36 @@ body {
     padding: 2.2rem 2rem 5rem;
   }
 
-  .my-shelf-api-search-controls {
-    grid-template-columns:
-      minmax(7.5rem, 8.5rem) minmax(0, 1fr) auto auto;
-    align-items: center;
+  /* 作品追加: PCは横一列詰め込みをやめ、行分割で入力幅を確保 */
+  .my-shelf-compose-modal .my-shelf-api-search-controls {
+    grid-template-columns: minmax(8.5rem, 11rem) minmax(0, 1fr);
+    align-items: stretch;
   }
 
-  .my-shelf-api-search-controls.is-music {
-    grid-template-columns:
-      minmax(7.5rem, 9rem) minmax(8.5rem, 10rem) minmax(0, 1fr) minmax(0, 1fr)
-      auto auto;
+  .my-shelf-compose-modal .my-shelf-api-search-controls.is-music {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .my-shelf-compose-modal .my-shelf-api-search-genre,
+  .my-shelf-compose-modal .my-shelf-api-search-controls > input[type="text"] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .my-shelf-compose-modal .my-shelf-api-search-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.65rem;
+    grid-column: 1 / -1;
+  }
+
+  .my-shelf-compose-modal .my-shelf-api-search-submit,
+  .my-shelf-compose-modal .my-shelf-api-search-reset {
+    width: auto;
+    flex: 0 0 auto;
+    padding-inline: 1rem;
   }
 
   .my-shelf-api-search-reset {
@@ -4056,7 +4274,7 @@ body {
   display: flex;
   flex-direction: column;
   width: min(680px, 100%);
-  max-height: min(85vh, 100%);
+  max-height: min(85dvh, 85vh, 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
@@ -4124,16 +4342,34 @@ body {
   margin-top: 0.75rem;
 }
 
+/* 作品追加モーダル: モーダル見出しと重複する h2 を隠し、ページ押し下げ余白を外す */
+.my-shelf-compose-modal .my-shelf-compose {
+  margin-bottom: 0;
+}
+
+.my-shelf-compose-modal .my-shelf-compose-heading {
+  display: none;
+}
+
+.my-shelf-compose-modal.shelf-settings-modal {
+  width: min(780px, 100%);
+}
+
 @media (max-width: 520px) {
   .shelf-settings-modal-backdrop {
-    padding: 0.65rem;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: center;
+    padding:
+      max(0.75rem, env(safe-area-inset-top, 0px))
+      max(3vw, env(safe-area-inset-right, 0px))
+      max(0.75rem, env(safe-area-inset-bottom, 0px))
+      max(3vw, env(safe-area-inset-left, 0px));
   }
 
   .shelf-settings-modal {
-    width: 100%;
-    max-height: min(88vh, 100%);
-    border-radius: var(--radius) var(--radius) 0.55rem 0.55rem;
+    width: min(94vw, 100%);
+    max-height: min(85dvh, calc(100% - 1.5rem));
+    border-radius: var(--radius);
   }
 
   .shelf-settings-modal-head {
@@ -4142,6 +4378,10 @@ body {
 
   .shelf-settings-modal-body {
     padding: 0.9rem 0.95rem 1.1rem;
+  }
+
+  .my-shelf-compose-modal.shelf-settings-modal {
+    width: min(94vw, 100%);
   }
 }
 

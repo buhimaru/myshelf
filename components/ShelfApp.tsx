@@ -26,6 +26,7 @@ import {
 import ShelfConnections from "./ShelfConnections";
 import ShelfDisplayNameSettings from "./ShelfDisplayNameSettings";
 import ShelfFollowRequests from "./ShelfFollowRequests";
+import { ShelfModalOrInline } from "./ShelfSettingsModal";
 import ShelfShareButton from "./ShelfShareButton";
 import ShelfVisibilitySettings from "./ShelfVisibilitySettings";
 import {
@@ -1972,6 +1973,12 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     setShowForm(true);
   };
 
+  const closeComposeForm = () => {
+    setShowForm(false);
+    resetComposeFields();
+    resetApiSearch();
+  };
+
   const visibleItems = filterShelfItemsInAdditionOrder(items, {
     searchQuery,
     categoryFilter,
@@ -1987,7 +1994,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     : "正式アカウントに登録";
   const authModalLead = authModalIsLoginHelp
     ? "登録したメールアドレスとパスワードでログインすると、ゲスト時代の棚を引き継げます。"
-    : "今の棚と作品をそのまま引き継いで、別の端末からも使えるようになります。";
+    : "今のゲストの棚と作品をそのまま引き継いで、別の端末からも使えるようになります。";
 
   const closeAuthModal = () => {
     setShowAuth(false);
@@ -2046,7 +2053,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     <div className="my-shelf">
       <header className="my-shelf-topbar">
         <div className="my-shelf-topbar-inner">
-          <Link href="/" className="my-shelf-logo-link">
+          <Link href="/?lp=1" className="my-shelf-logo-link">
             myshelf
           </Link>
           <div className="my-shelf-account">
@@ -2195,7 +2202,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                   />
                   {!user.is_anonymous && <ShelfConnections user={user} />}
                   <ShelfFollowRequests user={user} />
-                  <ShelfShareButton user={user} />
+                  {!user.is_anonymous && <ShelfShareButton user={user} />}
                 </div>
               </div>
             )}
@@ -2208,9 +2215,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
             className={`btn-primary${showForm ? " is-close" : ""}`}
             onClick={() => {
               if (showForm) {
-                setShowForm(false);
-                resetComposeFields();
-                resetApiSearch();
+                closeComposeForm();
                 return;
               }
               openComposeForm();
@@ -2224,7 +2229,16 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         </section>
 
         {showForm && (
-          <section id="my-shelf-compose" className="my-shelf-compose">
+          <ShelfModalOrInline
+            asModal
+            title={editingId ? "作品を編集" : "作品を追加"}
+            onClose={closeComposeForm}
+            className="my-shelf-compose-modal"
+          >
+          <section
+            id="my-shelf-compose"
+            className="my-shelf-compose my-shelf-compose--in-modal"
+          >
             <h2 className="my-shelf-compose-heading">
               {editingId ? "作品を編集" : "作品を追加"}
             </h2>
@@ -2318,22 +2332,24 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                       }}
                     />
                   )}
-                  <button
-                    type="button"
-                    className="my-shelf-api-search-submit"
-                    onClick={handleApiSearch}
-                    disabled={apiSearchLoading || musicLoadingMore}
-                  >
-                    {apiSearchLoading ? "検索中..." : "検索"}
-                  </button>
-                  <button
-                    type="button"
-                    className="my-shelf-reset my-shelf-api-search-reset"
-                    onClick={clearApiSearchQueryAndResults}
-                    disabled={apiSearchLoading || musicLoadingMore}
-                  >
-                    リセット
-                  </button>
+                  <div className="my-shelf-api-search-actions">
+                    <button
+                      type="button"
+                      className="my-shelf-api-search-submit"
+                      onClick={handleApiSearch}
+                      disabled={apiSearchLoading || musicLoadingMore}
+                    >
+                      {apiSearchLoading ? "検索中..." : "検索"}
+                    </button>
+                    <button
+                      type="button"
+                      className="my-shelf-reset my-shelf-api-search-reset"
+                      onClick={clearApiSearchQueryAndResults}
+                      disabled={apiSearchLoading || musicLoadingMore}
+                    >
+                      リセット
+                    </button>
+                  </div>
                 </div>
                 {apiSearchGenre === "music" ? (
                   <p className="my-shelf-api-search-music-hint">
@@ -2874,6 +2890,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
               </div>
             )}
           </section>
+          </ShelfModalOrInline>
         )}
 
         {showShelfToolbar && (
@@ -3051,9 +3068,30 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
               </div>
               <p className="my-shelf-auth-lead">{authModalLead}</p>
               {user?.is_anonymous && (
-                <p className="my-shelf-auth-switch-note">
-                  ※既存アカウントにログインすると、そのアカウントの棚に切り替わります。現在のゲストの作品は自動では追加されません。
-                </p>
+                <div className="my-shelf-auth-switch-note">
+                  <p className="my-shelf-auth-switch-note-title">
+                    <svg
+                      className="my-shelf-auth-switch-note-icon"
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                    <span>すでにアカウントをお持ちの方</span>
+                  </p>
+                  <p className="my-shelf-auth-switch-note-body">
+                    既存のアカウントにログインしても、今のゲストの棚や作品は引き継がれません。引き継ぎたい場合は、新しく正式登録してください。
+                  </p>
+                </div>
               )}
               {authFormMessage && (
                 <p className="my-shelf-auth-message" role="alert">
@@ -3089,7 +3127,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                     className="btn-primary"
                     onClick={handleSignIn}
                   >
-                    ログイン
+                    既存アカウントでログイン
                   </button>
                 ) : (
                   <>
@@ -3105,7 +3143,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
                       className="btn-primary is-close"
                       onClick={handleSignIn}
                     >
-                      ログイン
+                      既存アカウントでログイン
                     </button>
                   </>
                 )}

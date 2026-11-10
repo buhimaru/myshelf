@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
+import {
+  isAnonymousAuthUser,
+  isRegisteredAuthUser,
+} from "../utils/supabase/authUser";
 import { createClient } from "../utils/supabase/client";
 import {
   buildEmailConfirmRedirectTo,
@@ -20,11 +26,14 @@ import {
   setSignupEmailPending,
 } from "../utils/supabase/registrationNotice";
 import ShelfPreview from "./ShelfPreview";
+import SiteFooter from "./SiteFooter";
 import { useLockBodyScroll } from "./useLockBodyScroll";
 
 type AuthMode = "login" | "start";
 
 type LandingPageProps = {
+  /** 既存セッション（ゲスト含む）。ある場合は棚へ戻す導線を出す */
+  sessionUser?: User | null;
   initialAuthMode?: AuthMode | null;
   /** メール確認失敗など、親から渡す初期メッセージ */
   initialAuthMessage?: string | null;
@@ -81,11 +90,16 @@ function readLandingBoot(
 }
 
 export default function LandingPage({
+  sessionUser = null,
   initialAuthMode = null,
   initialAuthMessage = null,
   preferLogin = false,
 }: LandingPageProps) {
+  const router = useRouter();
   const supabase = createClient();
+  const hasSession = Boolean(sessionUser);
+  const isGuestSession = isAnonymousAuthUser(sessionUser);
+  const isRegisteredSession = isRegisteredAuthUser(sessionUser);
   const [boot] = useState(() =>
     readLandingBoot(initialAuthMode, initialAuthMessage, preferLogin)
   );
@@ -219,7 +233,17 @@ export default function LandingPage({
     }
   };
 
+  const goToOwnShelf = () => {
+    // lp を外して / へ。既存セッションのまま ShelfApp を表示する。
+    router.push("/");
+  };
+
   const handleGuestSignIn = async () => {
+    // 既存セッションがあるときは新規匿名アカウントを作らない
+    if (sessionUser) {
+      goToOwnShelf();
+      return;
+    }
     setAuthBusy(true);
     setAuthMessage("");
     try {
@@ -236,7 +260,7 @@ export default function LandingPage({
     <div className="lp">
       <header className="lp-header">
         <div className="lp-header-inner">
-          <Link href="/" className="lp-logo">
+          <Link href="/?lp=1" className="lp-logo">
             myshelf
           </Link>
 
@@ -263,20 +287,32 @@ export default function LandingPage({
             <Link href="/about" className="lp-nav-link" onClick={() => setMenuOpen(false)}>
               myshelfについて
             </Link>
-            <button
-              type="button"
-              className="lp-nav-link lp-nav-button"
-              onClick={() => openAuth("login")}
-            >
-              ログイン
-            </button>
-            <button
-              type="button"
-              className="lp-nav-cta"
-              onClick={() => openAuth("start")}
-            >
-              はじめる
-            </button>
+            {hasSession ? (
+              <Link
+                href="/"
+                className="lp-nav-cta"
+                onClick={() => setMenuOpen(false)}
+              >
+                自分の棚へ
+              </Link>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="lp-nav-link lp-nav-button"
+                  onClick={() => openAuth("login")}
+                >
+                  ログイン
+                </button>
+                <button
+                  type="button"
+                  className="lp-nav-cta"
+                  onClick={() => openAuth("start")}
+                >
+                  はじめる
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -332,148 +368,176 @@ export default function LandingPage({
               </span>
             </p>
             <div className="lp-hero-actions">
-              <button
-                type="button"
-                className="lp-btn-primary"
-                onClick={() => openAuth("start")}
-              >
-                今すぐはじめる
-              </button>
-              <button
-                type="button"
-                className="lp-btn-text"
-                onClick={() => openAuth("login")}
-              >
-                すでにアカウントがある方はログイン
-              </button>
-            </div>
-
-            <div className="lp-mini-features">
-              <h2 className="lp-mini-features-title">myshelfでできること</h2>
-              <ul className="lp-mini-features-grid">
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+              {hasSession ? (
+                <>
+                  <Link href="/" className="lp-btn-primary">
+                    自分の棚へ戻る
+                  </Link>
+                  {isGuestSession && (
+                    <button
+                      type="button"
+                      className="lp-btn-text"
+                      onClick={() => openAuth("start")}
+                    >
+                      正式登録する
+                    </button>
+                  )}
+                  {isRegisteredSession && (
+                    <button
+                      type="button"
+                      className="lp-btn-text"
+                      onClick={() => openAuth("login")}
+                    >
+                      別アカウントでログイン
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="lp-btn-primary"
+                    onClick={() => openAuth("start")}
                   >
-                    <circle cx="10.5" cy="10.5" r="5.25" />
-                    <path d="m15 15 4.5 4.5" />
-                  </svg>
-                  <span className="lp-mini-feature-label">作品を探す</span>
-                </li>
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+                    今すぐはじめる
+                  </button>
+                  <button
+                    type="button"
+                    className="lp-btn-text"
+                    onClick={() => openAuth("login")}
                   >
-                    <rect width="8" height="18" x="3" y="3" rx="1" />
-                    <path d="M7 3v18" />
-                    <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" />
-                  </svg>
-                  <span className="lp-mini-feature-label">自分の棚をつくる</span>
-                </li>
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <rect width="7" height="7" x="3" y="3" rx="1" />
-                    <rect width="7" height="7" x="14" y="3" rx="1" />
-                    <rect width="7" height="7" x="14" y="14" rx="1" />
-                    <rect width="7" height="7" x="3" y="14" rx="1" />
-                  </svg>
-                  <span className="lp-mini-feature-label">棚を整理する</span>
-                </li>
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="12" r="8.25" />
-                    <path d="M12 3.75v16.5" />
-                    <path d="M3.75 12h16.5" />
-                    <path d="M6.2 6.2c2 2.4 2.8 5 2.8 5.8s-.8 3.4-2.8 5.8" />
-                    <path d="M17.8 6.2c-2 2.4-2.8 5-2.8 5.8s.8 3.4 2.8 5.8" />
-                  </svg>
-                  <span className="lp-mini-feature-label">棚を公開する</span>
-                </li>
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="8.5" cy="8" r="2.3" />
-                    <circle cx="15.5" cy="8" r="2.3" />
-                    <path d="M4.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
-                    <path d="M11.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
-                  </svg>
-                  <span className="lp-mini-feature-label">人とつながる</span>
-                </li>
-                <li className="lp-mini-feature">
-                  <svg
-                    className="lp-mini-feature-icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="m8 11 2 2 4-4" />
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                  <span className="lp-mini-feature-label">棚を探す</span>
-                </li>
-              </ul>
+                    すでにアカウントがある方はログイン
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           <div className="lp-hero-visual" aria-label="棚のサンプル">
             <ShelfPreview />
+          </div>
+
+          <div className="lp-mini-features">
+            <h2 className="lp-mini-features-title">myshelfでできること</h2>
+            <ul className="lp-mini-features-grid">
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="10.5" cy="10.5" r="5.25" />
+                  <path d="m15 15 4.5 4.5" />
+                </svg>
+                <span className="lp-mini-feature-label">作品を探す</span>
+              </li>
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="8" height="18" x="3" y="3" rx="1" />
+                  <path d="M7 3v18" />
+                  <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" />
+                </svg>
+                <span className="lp-mini-feature-label">自分の棚をつくる</span>
+              </li>
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="7" height="7" x="3" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="14" rx="1" />
+                  <rect width="7" height="7" x="3" y="14" rx="1" />
+                </svg>
+                <span className="lp-mini-feature-label">棚を整理する</span>
+              </li>
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="8.25" />
+                  <path d="M12 3.75v16.5" />
+                  <path d="M3.75 12h16.5" />
+                  <path d="M6.2 6.2c2 2.4 2.8 5 2.8 5.8s-.8 3.4-2.8 5.8" />
+                  <path d="M17.8 6.2c-2 2.4-2.8 5-2.8 5.8s.8 3.4 2.8 5.8" />
+                </svg>
+                <span className="lp-mini-feature-label">棚を公開する</span>
+              </li>
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="8.5" cy="8" r="2.3" />
+                  <circle cx="15.5" cy="8" r="2.3" />
+                  <path d="M4.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+                  <path d="M11.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+                </svg>
+                <span className="lp-mini-feature-label">人とつながる</span>
+              </li>
+              <li className="lp-mini-feature">
+                <svg
+                  className="lp-mini-feature-icon"
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m8 11 2 2 4-4" />
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <span className="lp-mini-feature-label">棚を探す</span>
+              </li>
+            </ul>
           </div>
         </section>
 
@@ -529,6 +593,8 @@ export default function LandingPage({
         </section>
       </main>
 
+      <SiteFooter />
+
       {showAuth && (
         <div className="lp-auth-overlay" role="dialog" aria-modal="true" aria-labelledby="lp-auth-title">
           <div className="lp-auth-panel">
@@ -548,8 +614,15 @@ export default function LandingPage({
             <p className="lp-auth-lead">
               {authMode === "login"
                 ? "登録済みのメールアドレスでログインできます。メール確認が終わるまではログインできません。"
-                : "新規登録、またはゲストとしてはじめられます。"}
+                : isGuestSession
+                  ? "ゲストの棚を正式登録するか、そのまま自分の棚へ戻れます。"
+                  : "新規登録、またはゲストとしてはじめられます。"}
             </p>
+            {hasSession && (
+              <Link href="/" className="lp-btn-primary lp-auth-shelf-link">
+                自分の棚へ戻る
+              </Link>
+            )}
 
             <label className="lp-auth-field">
               メールアドレス
@@ -612,7 +685,9 @@ export default function LandingPage({
                 onClick={handleGuestSignIn}
                 disabled={authBusy}
               >
-                ゲストとしてはじめる
+                {hasSession
+                  ? "自分の棚へ戻る"
+                  : "ゲストとしてはじめる"}
               </button>
             </div>
           </div>

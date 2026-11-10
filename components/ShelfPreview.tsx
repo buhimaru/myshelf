@@ -48,7 +48,7 @@ export default function ShelfPreview() {
           width={SAMPLE_WIDTH}
           height={SAMPLE_HEIGHT}
           className="lp-shelf-sample-image"
-          sizes="(max-width: 767px) 94vw, 640px"
+          sizes="(max-width: 520px) 100vw, (max-width: 1099px) 94vw, 640px"
           quality={92}
           priority
           unoptimized
@@ -81,7 +81,7 @@ export default function ShelfPreview() {
           })}
         </div>
         <p className="lp-shelf-sample-hint">
-          ← ジャンルごとの表示にも切り替えられます。ドラマを押してみてください
+          ジャンルを切り替えて棚を見てみよう。
         </p>
       </div>
     </div>

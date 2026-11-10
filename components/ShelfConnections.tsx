@@ -317,7 +317,7 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
         className="shelf-connections-modal"
       >
         <p className="shelf-panel-lead">
-          フォローしているユーザーがここに表示されます。相互フォローになると、お互いの非公開棚も閲覧できるようになります。
+          フォローしている人や、あなたをフォローしている人が表示されます。非公開の棚は、閲覧が許可された人だけが見ることができます。
         </p>
 
         {loading && (

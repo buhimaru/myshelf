@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 
 export const metadata = {
@@ -123,6 +124,7 @@ export default function HowToPage() {
           </Link>
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

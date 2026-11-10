@@ -60,6 +60,8 @@ function HomeContent() {
   const authParam = searchParams.get("auth");
   const initialAuthMode =
     authParam === "login" || authParam === "start" ? authParam : null;
+  // ロゴなどからトップ（LP）を明示表示。セッションがあっても棚へ飛ばさない。
+  const preferLanding = searchParams.get("lp") === "1";
 
   useEffect(() => {
     return subscribeAuthUser(supabase, (next) => {
@@ -92,13 +94,14 @@ function HomeContent() {
     );
   }
 
-  if (user) {
+  if (user && !preferLanding) {
     // アカウント切替時に棚・通知 state をリセット（別 user の完了通知を残さない）
     return <ShelfApp key={user.id} initialUser={user} />;
   }
 
   return (
     <LandingPage
+      sessionUser={user}
       initialAuthMode={initialAuthMode}
       initialAuthMessage={callbackBoot.errorMessage}
       preferLogin={callbackBoot.preferLogin}

@@ -51,7 +51,7 @@ function contentRight(bay: number): number {
 }
 
 function sizeForBay(bay: number, size: ImageShelfSize): ImageShelfSize {
-  if (bay !== 3 || CANDIDATE_NARROW_SHELF_BAY3_SIZE_SCALE === 1) return size;
+  if (bay !== 3) return size;
   return {
     width: size.width * CANDIDATE_NARROW_SHELF_BAY3_SIZE_SCALE,
     height: size.height * CANDIDATE_NARROW_SHELF_BAY3_SIZE_SCALE,

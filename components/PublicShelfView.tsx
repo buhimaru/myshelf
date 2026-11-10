@@ -225,7 +225,7 @@ export default function PublicShelfView({ userId }: PublicShelfViewProps) {
     <div className="my-shelf public-shelf">
       <header className="my-shelf-topbar">
         <div className="my-shelf-topbar-inner">
-          <Link href="/" className="my-shelf-logo-link">
+          <Link href="/?lp=1" className="my-shelf-logo-link">
             myshelf
           </Link>
           <div className="my-shelf-account public-shelf-account">

@@ -120,7 +120,7 @@ function sizeForBay(
   bayExtraScale?: readonly [number, number, number, number]
 ): ImageShelfSize {
   let scaled = scaleSize(size, coverScale);
-  if (bay === 3 && CANDIDATE_WARM_SHELF_BAY3_SIZE_SCALE !== 1) {
+  if (bay === 3) {
     scaled = {
       width: scaled.width * CANDIDATE_WARM_SHELF_BAY3_SIZE_SCALE,
       height: scaled.height * CANDIDATE_WARM_SHELF_BAY3_SIZE_SCALE,

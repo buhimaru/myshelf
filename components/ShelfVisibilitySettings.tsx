@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "../utils/supabase/client";
-import {
-  buildShelfShareUrl,
-  fetchMyProfile,
-  updateMyShelfPublic,
-} from "../utils/supabase/profile";
+import { fetchMyProfile, updateMyShelfPublic } from "../utils/supabase/profile";
 import {
   announceShelfSettingsModal,
   subscribeShelfSettingsModalExclusive,
@@ -67,9 +63,6 @@ export default function ShelfVisibilitySettings({
   const [loadError, setLoadError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [copyMessage, setCopyMessage] = useState("");
-
-  const shareUrl = buildShelfShareUrl(user.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +116,6 @@ export default function ShelfVisibilitySettings({
   const openModal = () => {
     setSaveMessage("");
     setSaveError("");
-    setCopyMessage("");
     setPanelOpen(true);
   };
 
@@ -137,7 +129,6 @@ export default function ShelfVisibilitySettings({
     setSaving(true);
     setSaveMessage("");
     setSaveError("");
-    setCopyMessage("");
 
     const { data, error } = await updateMyShelfPublic(
       supabase,
@@ -156,35 +147,6 @@ export default function ShelfVisibilitySettings({
 
     setIsPublic(Boolean(data.is_public));
     setSaveMessage(data.is_public ? "棚を公開しました。" : "棚を非公開にしました。");
-  };
-
-  const handleCopy = async () => {
-    setCopyMessage("");
-    setSaveError("");
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopyMessage("コピーしました。");
-    } catch {
-      setCopyMessage("");
-      setSaveError("コピーに失敗しました。");
-    }
-  };
-
-  const SHARE_TEXT = "私のmyshelfを見てみてください。";
-
-  const handleShareX = () => {
-    const href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      SHARE_TEXT
-    )}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(href, "_blank", "noopener,noreferrer");
-  };
-
-  const handleShareLine = () => {
-    const href = `https://line.me/R/msg/text/?${encodeURIComponent(
-      `${SHARE_TEXT}\n${shareUrl}`
-    )}`;
-    window.open(href, "_blank", "noopener,noreferrer");
   };
 
   const chipLabel = loading ? "…" : isPublic ? "公開" : "非公開";
@@ -282,52 +244,6 @@ export default function ShelfVisibilitySettings({
                   </p>
                 )}
                 {saveError && <p className="shelf-error">{saveError}</p>}
-
-                <div className="my-shelf-visibility-share">
-                  <p className="my-shelf-visibility-share-label">共有用リンク</p>
-                  <div className="my-shelf-visibility-share-row">
-                    <input
-                      type="text"
-                      className="my-shelf-visibility-share-input"
-                      value={shareUrl}
-                      readOnly
-                      aria-label="共有用リンク"
-                      onFocus={(e) => e.currentTarget.select()}
-                    />
-                    <button
-                      type="button"
-                      className="my-shelf-visibility-copy"
-                      onClick={() => void handleCopy()}
-                    >
-                      コピー
-                    </button>
-                  </div>
-                  <div
-                    className="my-shelf-visibility-share-actions"
-                    role="group"
-                    aria-label="SNSでシェア"
-                  >
-                    <button
-                      type="button"
-                      className="my-shelf-visibility-share-btn"
-                      onClick={handleShareX}
-                    >
-                      Xでシェア
-                    </button>
-                    <button
-                      type="button"
-                      className="my-shelf-visibility-share-btn"
-                      onClick={handleShareLine}
-                    >
-                      LINEでシェア
-                    </button>
-                  </div>
-                  {copyMessage && (
-                    <p className="my-shelf-visibility-success" role="status">
-                      {copyMessage}
-                    </p>
-                  )}
-                </div>
               </>
             )}
           </>

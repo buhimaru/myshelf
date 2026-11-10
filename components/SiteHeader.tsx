@@ -15,7 +15,7 @@ export default function SiteHeader({ active }: SiteHeaderProps) {
   return (
     <header className="lp-header">
       <div className="lp-header-inner">
-        <Link href="/" className="lp-logo">
+        <Link href="/?lp=1" className="lp-logo">
           myshelf
         </Link>
 
