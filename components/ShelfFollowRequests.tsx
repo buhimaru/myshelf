@@ -235,7 +235,28 @@ export default function ShelfFollowRequests({ user }: ShelfFollowRequestsProps) 
             void refresh({ showLoading: true });
           }}
         >
-          <span>申請{count > 0 ? ` ${count}` : ""}</span>
+          <svg
+            className="my-shelf-visibility-chip-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4.5 7.5h11.5" />
+            <path d="M4.5 12h8" />
+            <path d="M4.5 16.5h6" />
+            <path d="M16.5 14.5v5" />
+            <path d="M14 17h5" />
+          </svg>
+          <span>申請</span>
+          {count > 0 ? (
+            <span className="shelf-tool-chip-count">{count}</span>
+          ) : null}
         </button>
       )}
 

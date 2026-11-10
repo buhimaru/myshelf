@@ -19,15 +19,18 @@ function LockIcon() {
   return (
     <svg
       className="my-shelf-visibility-chip-icon"
-      viewBox="0 0 16 16"
+      viewBox="0 0 24 24"
       width="14"
       height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path
-        fill="currentColor"
-        d="M8 1.5A2.5 2.5 0 0 0 5.5 4v2H5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-.5V4A2.5 2.5 0 0 0 8 1.5zm1.5 4.5h-3V4a1.5 1.5 0 1 1 3 0v2z"
-      />
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
@@ -36,15 +39,21 @@ function PublicIcon() {
   return (
     <svg
       className="my-shelf-visibility-chip-icon"
-      viewBox="0 0 16 16"
+      viewBox="0 0 24 24"
       width="14"
       height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path
-        fill="currentColor"
-        d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM2.6 8h2.1c.1 1.5.5 2.9 1.1 4A5 5 0 0 1 2.6 8zm3.1 0h4.6c-.1 1.7-.6 3.2-1.3 4.3-.4.6-.8 1-1 1.2-.2-.2-.6-.6-1-1.2C6.3 11.2 5.8 9.7 5.7 8zm4.6 0h2.1a5 5 0 0 1-3.2 4c.6-1.1 1-2.5 1.1-4zM8 2.6c.2.2.6.6 1 1.2.7 1.1 1.2 2.6 1.3 4.2H5.7c.1-1.6.6-3.1 1.3-4.2.4-.6.8-1 1-1.2z"
-      />
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M12 3.75v16.5" />
+      <path d="M3.75 12h16.5" />
+      <path d="M6.2 6.2c2 2.4 2.8 5 2.8 5.8s-.8 3.4-2.8 5.8" />
+      <path d="M17.8 6.2c-2 2.4-2.8 5-2.8 5.8s.8 3.4 2.8 5.8" />
     </svg>
   );
 }

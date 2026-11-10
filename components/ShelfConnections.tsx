@@ -300,6 +300,23 @@ export default function ShelfConnections({ user }: ShelfConnectionsProps) {
           setPanelOpen(true);
         }}
       >
+        <svg
+          className="my-shelf-visibility-chip-icon"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="8.5" cy="8" r="2.3" />
+          <circle cx="15.5" cy="8" r="2.3" />
+          <path d="M4.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+          <path d="M11.4 18c.55-2.2 2.3-3.4 4.1-3.4s3.55 1.2 4.1 3.4" />
+        </svg>
         <span>つながり</span>
       </button>
 

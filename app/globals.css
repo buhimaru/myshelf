@@ -1959,38 +1959,14 @@ body {
 }
 
 .my-shelf-intro-tools .my-shelf-visibility-chip {
-  gap: 0.35rem;
-  min-height: 1.85rem;
-  padding: calc(0.34rem - 1px) calc(0.68rem - 1px);
-  border: 2px solid #a8a29e;
+  min-height: 1.9rem;
+  padding: 0.32rem 0.7rem;
   font-size: 0.8125rem;
-  line-height: 1.25;
-  box-sizing: border-box;
-}
-
-.my-shelf-intro-tools .my-shelf-visibility-chip:hover {
-  border-color: #78716c;
-}
-
-.my-shelf-intro-tools .my-shelf-visibility-chip.is-public {
-  border-color: #d9f99d;
-}
-
-.my-shelf-intro-tools .my-shelf-visibility-chip.is-public:hover {
-  border-color: #bef264;
-}
-
-.my-shelf-intro-tools .shelf-follow-requests-chip.has-requests {
-  border-color: #fdba74;
-}
-
-.my-shelf-intro-tools .shelf-follow-requests-chip.has-requests:hover {
-  border-color: #fb923c;
 }
 
 .my-shelf-intro-tools .my-shelf-visibility-chip-icon {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
 }
 
 .my-shelf-display-name-editor {
@@ -2171,53 +2147,88 @@ body {
 .my-shelf-visibility-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  justify-content: center;
+  gap: 0.35rem;
   flex: 0 0 auto;
   margin: 0;
-  padding: calc(0.28rem - 1px) calc(0.55rem - 1px);
-  border: 2px solid #a8a29e;
-  border-radius: 999px;
-  background: #fafaf9;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  min-height: 1.85rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  background: #fff;
+  color: #57534e;
+  font-size: 0.78rem;
+  font-weight: 550;
   font-family: inherit;
   line-height: 1.2;
+  letter-spacing: 0.01em;
   cursor: pointer;
   box-sizing: border-box;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.my-shelf-visibility-chip.is-private {
+  color: #57534e;
+  background: #fff;
+  border-color: #d6d3d1;
 }
 
 .my-shelf-visibility-chip.is-public {
-  color: #3f6212;
-  background: #f7fee7;
-  border-color: #d9f99d;
+  color: #44403c;
+  background: #f5f5f4;
+  border-color: #d6d3d1;
 }
 
 .my-shelf-visibility-chip.is-open {
+  background: #fafaf9;
   border-color: #a8a29e;
-  background: #fff;
+  color: #44403c;
 }
 
 .my-shelf-visibility-chip:hover {
   background: #f5f5f4;
-  border-color: #78716c;
+  border-color: #a8a29e;
+  color: #44403c;
 }
 
-.my-shelf-visibility-chip.is-public:hover {
-  border-color: #bef264;
-}
-
+.my-shelf-visibility-chip.is-public:hover,
 .my-shelf-visibility-chip.is-open:hover {
-  border-color: #78716c;
+  background: #f0efee;
+  border-color: #a8a29e;
+}
+
+.shelf-follow-requests-chip.has-requests {
+  color: #44403c;
+  background: #fff;
+  border-color: #d6d3d1;
 }
 
 .shelf-follow-requests-chip.has-requests:hover {
-  border-color: #fb923c;
+  background: #f5f5f4;
+  border-color: #a8a29e;
+}
+
+.shelf-tool-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 5px;
+  background: #e7e5e4;
+  color: #292524;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .my-shelf-visibility-chip-icon {
   display: block;
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: currentColor;
 }
 
 .my-shelf-visibility-panel {
@@ -3566,12 +3577,6 @@ body {
 /* フォロー申請（所有者） */
 .shelf-follow-requests {
   display: contents;
-}
-
-.shelf-follow-requests-chip.has-requests {
-  color: #9a3412;
-  background: #fff7ed;
-  border-color: #fdba74;
 }
 
 .shelf-follow-requests-list {
