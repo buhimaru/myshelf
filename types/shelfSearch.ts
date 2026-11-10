@@ -18,6 +18,6 @@ export type ShelfSearchResult = {
   rows: ShelfSearchHit[];
 };
 
-export const SHELF_SEARCH_MIN_LENGTH = 2;
+export const SHELF_SEARCH_MIN_LENGTH = 1;
 export const SHELF_SEARCH_MAX_LENGTH = 100;
 export const SHELF_SEARCH_PAGE_SIZE = 20;

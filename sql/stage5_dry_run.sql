@@ -94,8 +94,12 @@
 -- （フォロワーで検索しても出ないこと）
 
 -- ========== H. 文字数・メタ文字（ロール不問・postgres で可） ==========
+-- SELECT public.search_public_shelves_by_title('', 'newest', 20, 0);
+--   → total_count=0（空文字は拒否）
+-- SELECT public.search_public_shelves_by_title('   ', 'newest', 20, 0);
+--   → total_count=0（空白のみは拒否）
 -- SELECT public.search_public_shelves_by_title('a', 'newest', 20, 0);
---   → total_count=0
+--   → 1文字は検索実行（ヒット有無はデータ次第）
 -- SELECT public.search_public_shelves_by_title(repeat('x', 101), 'newest', 20, 0);
 --   → total_count=0
 -- SELECT public.search_public_shelves_by_title('100%_off', 'newest', 20, 0);

@@ -104,8 +104,8 @@ BEGIN
   v_limit := LEAST(GREATEST(COALESCE(page_limit, 20), 1), 50);
   v_offset := GREATEST(COALESCE(page_offset, 0), 0);
 
-  -- 文字数: 2〜100。範囲外は空結果（例外にしない）
-  IF char_length(v_query) < 2 OR char_length(v_query) > 100 THEN
+  -- 文字数: 1〜100。範囲外は空結果（例外にしない）
+  IF char_length(v_query) < 1 OR char_length(v_query) > 100 THEN
     RETURN jsonb_build_object(
       'total_count', 0,
       'limit', v_limit,
@@ -347,11 +347,18 @@ BEGIN
     RAISE EXCEPTION 'ABORT: myshelf_resolve_public_display_name の解決結果が想定外です。';
   END IF;
 
-  sample := public.search_public_shelves_by_title('a', 'newest', 20, 0);
+  -- 空文字・空白のみは拒否（1文字は許可）
+  sample := public.search_public_shelves_by_title('', 'newest', 20, 0);
   IF (sample ->> 'total_count') IS DISTINCT FROM '0'
      OR jsonb_typeof(sample -> 'rows') IS DISTINCT FROM 'array'
      OR jsonb_array_length(sample -> 'rows') IS DISTINCT FROM 0 THEN
-    RAISE EXCEPTION 'ABORT: 1文字検索の戻り値が想定外です。found=%', sample;
+    RAISE EXCEPTION 'ABORT: 空文字検索の戻り値が想定外です。found=%', sample;
+  END IF;
+
+  sample := public.search_public_shelves_by_title('   ', 'newest', 20, 0);
+  IF (sample ->> 'total_count') IS DISTINCT FROM '0'
+     OR jsonb_array_length(sample -> 'rows') IS DISTINCT FROM 0 THEN
+    RAISE EXCEPTION 'ABORT: 空白のみ検索の戻り値が想定外です。found=%', sample;
   END IF;
 
   sample := public.search_public_shelves_by_title(repeat('あ', 101), 'newest', 20, 0);
