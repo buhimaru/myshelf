@@ -1232,18 +1232,37 @@ body {
 
 .lp-auth-overlay {
   position: fixed;
-  inset: 0;
+  top: var(--app-vv-offset-top, 0px);
+  right: 0;
+  bottom: auto;
+  left: 0;
   z-index: 40;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   padding: 1rem;
   background: rgba(41, 37, 36, 0.35);
+  /* キーボード表示時は visualViewport に合わせ、パネル内側を縦スクロール可能に */
+  height: var(--app-vv-height, 100%);
+  max-height: var(--app-vv-height, 100dvh);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .lp-auth-panel {
   width: 100%;
   max-width: 420px;
+  /* 短いときは下寄せ（従来のモバイル見た目） */
+  margin-top: auto;
+  max-height: calc(var(--app-vv-height, 100dvh) - 2rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  flex-shrink: 1;
+  min-height: 0;
   padding: 1.35rem 1.25rem 1.5rem;
   border-radius: var(--radius);
   background: #fff;
@@ -1498,7 +1517,11 @@ body {
   }
 
   .lp-auth-overlay {
-    align-items: center;
+    justify-content: center;
+  }
+
+  .lp-auth-panel {
+    margin-top: 0;
   }
 
   .lp-simple {
@@ -1795,35 +1818,45 @@ body {
 
 .my-shelf-auth-overlay {
   position: fixed;
-  top: 0;
+  top: var(--app-vv-offset-top, 0px);
   right: 0;
-  bottom: 0;
+  bottom: auto;
   left: 0;
   z-index: 100;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  height: 100%;
+  height: var(--app-vv-height, 100%);
+  max-height: var(--app-vv-height, 100dvh);
   padding:
     max(0.75rem, env(safe-area-inset-top, 0px))
     1rem
     max(0.75rem, env(safe-area-inset-bottom, 0px));
   background: rgba(41, 37, 36, 0.35);
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .my-shelf-auth-panel {
   width: min(100%, 420px);
-  max-height: min(90dvh, calc(100% - 1.5rem));
-  margin: 0;
+  max-height: calc(var(--app-vv-height, 100dvh) - 1.5rem);
+  margin-top: auto;
+  margin-bottom: auto;
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  flex-shrink: 1;
+  min-height: 0;
   box-shadow: 0 10px 30px rgba(28, 25, 23, 0.12);
 }
 
 .my-shelf-auth-panel.shelf-form {
-  margin-top: 0;
+  /* .shelf-form の margin-top:1.5rem を打ち消しつつ、短いときは中央寄せを維持 */
+  margin-top: auto;
 }
 
 .my-shelf-auth-lead {

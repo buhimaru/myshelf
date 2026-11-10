@@ -44,6 +44,7 @@ import {
 import BookPaperbackCover from "./BookPaperbackCover";
 import ImageShelf from "./ImageShelf";
 import ShelfItemDetail from "./ShelfItemDetail";
+import { useVisualViewportHeight } from "./useVisualViewportHeight";
 import {
   formatCreatorWithRole,
   parseStoredCreatorCredit,
@@ -2037,6 +2038,8 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       body.style.overflow = prev.bodyOverflow;
     };
   }, [authModalOpen]);
+
+  useVisualViewportHeight(authModalOpen);
 
   useEffect(() => {
     if (!authModalOpen) return;

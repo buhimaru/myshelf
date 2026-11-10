@@ -28,6 +28,7 @@ import {
 import ShelfPreview from "./ShelfPreview";
 import SiteFooter from "./SiteFooter";
 import { useLockBodyScroll } from "./useLockBodyScroll";
+import { useVisualViewportHeight } from "./useVisualViewportHeight";
 
 type AuthMode = "login" | "start";
 
@@ -121,7 +122,10 @@ export default function LandingPage({
     );
   });
 
-  useLockBodyScroll(menuOpen || showAuth);
+  // メニューは position:fixed ロック、認証モーダルは overflow のみ（キーボード時スクロール用）
+  useLockBodyScroll(menuOpen, "fixed");
+  useLockBodyScroll(showAuth && !menuOpen, "overflow");
+  useVisualViewportHeight(showAuth);
 
   const openAuth = (mode: AuthMode) => {
     setAuthMode(mode);
