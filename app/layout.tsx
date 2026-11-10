@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   title: "myshelf",
   description:
     "本も、映画も、音楽も、漫画も。好きな作品をひとつの棚に残すサービスです。",
+  applicationName: "myshelf",
+  appleWebApp: {
+    title: "myshelf",
+    capable: true,
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
