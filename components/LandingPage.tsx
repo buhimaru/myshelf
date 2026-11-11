@@ -357,9 +357,10 @@ export default function LandingPage({
             <p className="lp-brand">myshelf</p>
             <h1 className="lp-hero-title">
               <span className="lp-hero-title-line">
-                あなたの中に残っている作品を、
-              </span>
-              <span className="lp-hero-title-line">ひとつの棚に。</span>
+                あなたの中に残っている
+                <br className="lp-hero-title-break-mobile" />
+                作品を、
+              </span><span className="lp-hero-title-line">ひとつの棚に。</span>
             </h1>
             <p className="lp-hero-sub">本も、映画も、音楽も、漫画も。</p>
             <p className="lp-hero-desc">
