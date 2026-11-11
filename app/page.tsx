@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import AdFunnelCapture from "../components/AdFunnelCapture";
 import LandingPage from "../components/LandingPage";
 import ShelfApp from "../components/ShelfApp";
 import { formatAuthCallbackErrorMessage } from "../utils/supabase/authMessages";
@@ -96,16 +97,24 @@ function HomeContent() {
 
   if (user && !preferLanding) {
     // アカウント切替時に棚・通知 state をリセット（別 user の完了通知を残さない）
-    return <ShelfApp key={user.id} initialUser={user} />;
+    return (
+      <>
+        <AdFunnelCapture />
+        <ShelfApp key={user.id} initialUser={user} />
+      </>
+    );
   }
 
   return (
-    <LandingPage
-      sessionUser={user}
-      initialAuthMode={initialAuthMode}
-      initialAuthMessage={callbackBoot.errorMessage}
-      preferLogin={callbackBoot.preferLogin}
-    />
+    <>
+      <AdFunnelCapture />
+      <LandingPage
+        sessionUser={user}
+        initialAuthMode={initialAuthMode}
+        initialAuthMessage={callbackBoot.errorMessage}
+        preferLogin={callbackBoot.preferLogin}
+      />
+    </>
   );
 }
 

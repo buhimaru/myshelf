@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { User } from "@supabase/supabase-js";
 import { mediaItems } from "../data/media";
 import type { MediaItem, MediaType } from "../types/media";
+import { trackAdFunnelEvent } from "../utils/adFunnel/track";
 import { createClient } from "../utils/supabase/client";
 import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
 import {
@@ -474,6 +475,9 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       return { ok: false, error: "作品名を入力してください" };
     }
 
+    // 追加前が0件のときだけ「初作品」候補（サーバー側でも件数検証する）
+    const wasEmptyShelf = itemsRef.current.length === 0;
+
     const { data, error: insertError } = await supabase
       .from("items")
       .insert({
@@ -501,6 +505,10 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
     // 後追い表紙が setState 完了前に走っても参照できるよう同期更新
     itemsRef.current = [...itemsRef.current, mapped];
     setItems(itemsRef.current);
+
+    if (wasEmptyShelf) {
+      trackAdFunnelEvent("first_item");
+    }
 
     return { ok: true, id: String(data.id) };
   };
@@ -1386,6 +1394,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
         setRegistrationNotice("registered");
         setShowAuth(false);
         setAuthFormMessage("");
+        trackAdFunnelEvent("registered");
       } else if (nextUser && !nextUser.is_anonymous) {
         // 通常のトークン更新などでは完了バナーを消さない（とじる操作のみ）
         setRegistrationNotice((prev) =>
@@ -1447,6 +1456,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       setRegistrationNotice("registered");
       setShowAuth(false);
       setAuthFormMessage("");
+      trackAdFunnelEvent("registered");
       return true;
     };
 
@@ -1549,6 +1559,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       setRegistrationNotice("registered");
       setShowAuth(false);
       setAuthFormMessage("");
+      trackAdFunnelEvent("registered");
     };
 
     const onVisible = () => {
@@ -1914,6 +1925,7 @@ export default function ShelfApp({ initialUser }: ShelfAppProps) {
       });
       if (upgradedSameUser) {
         setRegistrationNotice("registered");
+        trackAdFunnelEvent("registered");
       } else {
         clearAllRegistrationUpgradeState();
         setRegistrationNotice(null);

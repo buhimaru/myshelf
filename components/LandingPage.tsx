@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { trackAdFunnelEvent } from "../utils/adFunnel/track";
 import { formatAuthErrorMessage } from "../utils/supabase/authMessages";
 import {
   isAnonymousAuthUser,
@@ -190,6 +191,7 @@ export default function LandingPage({
       // メール確認必須のとき session は null。確認前に棚へ入らない。
       if (data.session && data.user && !data.user.is_anonymous) {
         clearAllRegistrationUpgradeState();
+        trackAdFunnelEvent("registered");
         return;
       }
 
@@ -225,9 +227,14 @@ export default function LandingPage({
       if (data.user && !data.user.is_anonymous) {
         // Landing は未ログイン起点。pending.userId 一致のときだけ昇格完了印を残す。
         const pending = getEmailConfirmPending();
+        const signupPending = getSignupEmailPending();
         if (pending && pending.userId === data.user.id) {
           clearAllRegistrationUpgradeState();
           markRegistrationCompleteNotice(data.user.id);
+          trackAdFunnelEvent("registered");
+        } else if (signupPending) {
+          clearAllRegistrationUpgradeState();
+          trackAdFunnelEvent("registered");
         } else {
           clearAllRegistrationUpgradeState();
         }
@@ -252,9 +259,13 @@ export default function LandingPage({
     setAuthBusy(true);
     setAuthMessage("");
     try {
-      const { error } = await supabase.auth.signInAnonymously();
+      const { data, error } = await supabase.auth.signInAnonymously();
       if (error) {
         setAuthMessage(formatAuthErrorMessage(error, "sign_in"));
+        return;
+      }
+      if (data.user?.is_anonymous) {
+        trackAdFunnelEvent("guest_start");
       }
     } finally {
       setAuthBusy(false);
