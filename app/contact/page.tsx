@@ -13,6 +13,9 @@ export default function ContactPage() {
       <main className="lp-simple lp-legal">
         <h1>お問い合わせ</h1>
         <p>
+          作品の表紙・ジャケット・ポスター等の掲載について、権利者の方から掲載停止・削除のご要望がございましたら、こちらからお問い合わせください。
+        </p>
+        <p>
           myshelfに関するご質問、不具合のご報告、作品情報・画像に関するお問い合わせなどは、以下のメールアドレスまでご連絡ください。
         </p>
         <p className="lp-contact-email">
